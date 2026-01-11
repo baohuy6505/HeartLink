@@ -1,0 +1,125 @@
+############################################
+# OS / System
+############################################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+############################################
+# Visual Studio / VS Code
+############################################
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+############################################
+# User-specific files
+############################################
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+############################################
+# Build results
+############################################
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+############################################
+# ASP.NET Core
+############################################
+wwwroot/lib/
+wwwroot/dist/
+wwwroot/build/
+wwwroot/node_modules/
+
+############################################
+# Dotnet tools & caches
+############################################
+*.dbmdl
+*.jfm
+*.cache
+*.pdb
+*.mdb
+*.tmp
+*.temp
+
+############################################
+# NuGet
+############################################
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+project.lock.json
+project.fragment.lock.json
+.nuget/
+.nuget/packages/
+
+############################################
+# Entity Framework
+############################################
+*.db
+*.db-shm
+*.db-wal
+Migrations/*.cs
+!Migrations/*ContextModelSnapshot.cs
+
+############################################
+# App settings (Secrets)
+############################################
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.json
+!appsettings.json
+
+############################################
+# Environment variables
+############################################
+.env
+.env.*
+secrets.json
+
+############################################
+# Publish output
+############################################
+publish/
+out/
+dist/
+
+############################################
+# Test results
+############################################
+TestResults/
+*.trx
+*.coverage
+
+############################################
+# Logs
+############################################
+*.log
+
+############################################
+# Rider / JetBrains
+############################################
+.idea/
+*.sln.iml
+
+############################################
+# Docker
+############################################
+docker-compose.override.yml
+
+############################################
+# Others
+############################################
+*.bak
+*.swp
+*.lock.json
