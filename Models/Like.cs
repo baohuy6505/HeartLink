@@ -1,22 +1,25 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HeartLink.Models
+namespace HeartLink.Models;
+
+[Table("LIKES")]
+public class Like
 {
-    public class Like
-    {
-        [Key]
-        public long LikeID { get; set; }
+    [Key]
+    public int LikeID { get; set; }
 
-        public int SenderID { get; set; }
-        public int ReceiverID { get; set; }
-        public string Type { get; set; } = "Like";
-        public DateTime CreatedAt { get; set; }
+    [Required]
+    public int SenderID { get; set; }
 
-        [ForeignKey("SenderID")]
-        public Account? Sender { get; set; }
+    [Required]
+    public int ReceiverID { get; set; }
 
-        [ForeignKey("ReceiverID")]
-        public Account? Receiver { get; set; }
-    }
+    [Required, MaxLength(10)]
+    public string Type { get; set; } = null!; // Like / Pass
+
+    public DateTime Timestamp { get; set; } = DateTime.Now;
+
+    public Account Sender { get; set; } = null!;
+    public Account Receiver { get; set; } = null!;
 }

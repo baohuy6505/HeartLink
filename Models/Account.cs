@@ -1,27 +1,35 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HeartLink.Models
+namespace HeartLink.Models;
+
+[Table("ACCOUNT")]
+public class Account
 {
-    public class Account
-    {
-        [Key]
-        public int AccountID { get; set; }
+    [Key]
+    public int AccountID { get; set; }
 
-        public string? Email { get; set; }
-        public string? PhoneNumber { get; set; }
-        public string PasswordHash { get; set; } = string.Empty;
-        public DateTime CreatedDate { get; set; }
-        public string Status { get; set; } = "Active";
-        public string Role { get; set; } = "User";
-        public DateTime? LastLoginAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
+    [Required, MaxLength(100), EmailAddress]
+    public string Email { get; set; } = null!;
 
-        public Profile? Profile { get; set; }
+    [Required, MaxLength(255)]
+    public string Password { get; set; } = null!;
 
-        public ICollection<Like> SentLikes { get; set; } = new List<Like>();
-        public ICollection<Like> ReceivedLikes { get; set; } = new List<Like>();
-        public ICollection<Match> MatchesAsUser1 { get; set; } = new List<Match>();
-        public ICollection<Match> MatchesAsUser2 { get; set; } = new List<Match>();
-        public ICollection<Message> MessagesSent { get; set; } = new List<Message>();
-    }
+    [MaxLength(15)]
+    public string? PhoneNumber { get; set; }
+
+    public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+    public bool Status { get; set; } = true;
+
+    [Required, MaxLength(20)]
+    public string UserRole { get; set; } = "User";
+
+    public Profile? Profile { get; set; }
+
+    public ICollection<Like> SentLikes { get; set; } = new List<Like>();
+    public ICollection<Like> ReceivedLikes { get; set; } = new List<Like>();
+    public ICollection<Match> MatchesAsUser1 { get; set; } = new List<Match>();
+    public ICollection<Match> MatchesAsUser2 { get; set; } = new List<Match>();
+    public ICollection<Message> MessagesSent { get; set; } = new List<Message>();
 }

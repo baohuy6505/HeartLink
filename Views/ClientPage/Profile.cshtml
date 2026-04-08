@@ -1,0 +1,61 @@
+@{
+    ViewData["Title"] = "Hồ sơ của tôi";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="hl-page-title mb-0">Hồ sơ của tôi</h1>
+    <div class="hl-actions">
+        <a class="btn btn-primary" href="/profile/edit">Chỉnh sửa hồ sơ</a>
+        <a class="btn btn-outline-secondary" href="/profile/filter">Cài bộ lọc</a>
+        <a class="btn btn-outline-warning" href="/change-password">Đổi mật khẩu</a>
+    </div>
+</div>
+
+<div id="profileMessage" class="alert" style="display:none;"></div>
+<div id="profileContainer"></div>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!HeartLink.requireAuth()) return;
+
+    try {
+        const data = await HeartLink.apiFetch("/api/client/profile/me");
+
+        const interests = (data.interests || []).map(x => `<span class="hl-badge me-2 mb-2">${x}</span>`).join("");
+
+        HeartLink.setHtml("profileContainer", `
+            <div class="card hl-card p-4">
+                <div class="row g-4">
+                    <div class="col-md-4 text-center">
+                        <img class="hl-avatar" src="${data.avatar || 'https://via.placeholder.com/260?text=Avatar'}" alt="avatar" />
+                    </div>
+                    <div class="col-md-8">
+                        <h3>${data.fullName}</h3>
+                        <p class="hl-meta mb-1"><strong>Email:</strong> ${data.email}</p>
+                        <p class="hl-meta mb-1"><strong>SĐT:</strong> ${data.phoneNumber || 'Chưa cập nhật'}</p>
+                        <p class="hl-meta mb-1"><strong>Giới tính:</strong> ${data.gender}</p>
+                        <p class="hl-meta mb-1"><strong>Tuổi:</strong> ${data.age}</p>
+                        <p class="hl-meta mb-1"><strong>Địa điểm:</strong> ${data.location || 'Chưa cập nhật'}</p>
+                        <p class="hl-meta mb-1"><strong>Muốn tìm:</strong> ${data.targetGender || 'Tất cả'}</p>
+                        <p class="hl-meta mb-3"><strong>Bộ lọc tuổi:</strong> ${data.minAge} - ${data.maxAge}</p>
+
+                        <div class="mb-3">
+                            <strong>Bio:</strong>
+                            <div>${data.bio || 'Chưa có bio'}</div>
+                        </div>
+
+                        <div>
+                            <strong>Sở thích:</strong>
+                            <div class="mt-2">${interests || '<span class="text-muted">Chưa có sở thích</span>'}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+    } catch (error) {
+        HeartLink.showMessage("profileMessage", error.message, "danger");
+    }
+});
+</script>
+}

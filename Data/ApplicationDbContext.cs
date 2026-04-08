@@ -1,78 +1,121 @@
 using HeartLink.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace HeartLink.Data
+namespace HeartLink.Data;
+
+public class ApplicationDbContext : DbContext
 {
-    public class ApplicationDbContext : DbContext
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
+    }
+
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<Profile> Profiles => Set<Profile>();
+    public DbSet<ProfileInterest> ProfileInterests => Set<ProfileInterest>();
+    public DbSet<Like> Likes => Set<Like>();
+    public DbSet<Match> Matches => Set<Match>();
+    public DbSet<Message> Messages => Set<Message>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Account>(entity =>
         {
-        }
+            entity.HasIndex(x => x.Email).IsUnique();
 
-        public DbSet<Account> Accounts { get; set; }
-        public DbSet<Profile> Profiles { get; set; }
-        public DbSet<Like> Likes { get; set; }
-        public DbSet<Match> Matches { get; set; }
-        public DbSet<Message> Messages { get; set; }
+            entity.HasIndex(x => x.PhoneNumber)
+                  .IsUnique()
+                  .HasFilter("[PhoneNumber] IS NOT NULL");
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+            entity.Property(x => x.CreatedDate).HasDefaultValueSql("GETDATE()");
+            entity.Property(x => x.Status).HasDefaultValue(true);
+            entity.Property(x => x.UserRole).HasDefaultValue("User");
+        });
+
+        modelBuilder.Entity<Profile>(entity =>
         {
-            base.OnModelCreating(modelBuilder);
+            entity.HasIndex(x => x.AccountID).IsUnique();
+            entity.Property(x => x.CreatedDate).HasDefaultValueSql("GETDATE()");
+            entity.Property(x => x.MinAge).HasDefaultValue(18);
+            entity.Property(x => x.MaxAge).HasDefaultValue(99);
+            entity.Property(x => x.Radius).HasDefaultValue(50);
 
-            modelBuilder.Entity<Account>().ToTable("Accounts");
-            modelBuilder.Entity<Profile>().ToTable("Profiles");
-            modelBuilder.Entity<Like>().ToTable("Likes");
-            modelBuilder.Entity<Match>().ToTable("Matches");
-            modelBuilder.Entity<Message>().ToTable("Messages");
-
-            modelBuilder.Entity<Account>().HasKey(x => x.AccountID);
-            modelBuilder.Entity<Profile>().HasKey(x => x.ProfileID);
-            modelBuilder.Entity<Like>().HasKey(x => x.LikeID);
-            modelBuilder.Entity<Match>().HasKey(x => x.MatchID);
-            modelBuilder.Entity<Message>().HasKey(x => x.MessageID);
-
-            modelBuilder.Entity<Profile>()
-                .HasOne(x => x.Account)
+            entity.HasOne(x => x.Account)
                 .WithOne(x => x.Profile)
                 .HasForeignKey<Profile>(x => x.AccountID)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
 
-            modelBuilder.Entity<Like>()
-                .HasOne(x => x.Sender)
+        modelBuilder.Entity<ProfileInterest>(entity =>
+        {
+            entity.HasKey(x => new { x.ProfileID, x.InterestName });
+
+            entity.HasOne(x => x.Profile)
+                .WithMany(x => x.Interests)
+                .HasForeignKey(x => x.ProfileID)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Like>(entity =>
+        {
+            entity.HasIndex(x => new { x.SenderID, x.ReceiverID }).IsUnique();
+            entity.Property(x => x.Timestamp).HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(x => x.Sender)
                 .WithMany(x => x.SentLikes)
                 .HasForeignKey(x => x.SenderID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Like>()
-                .HasOne(x => x.Receiver)
+            entity.HasOne(x => x.Receiver)
                 .WithMany(x => x.ReceivedLikes)
                 .HasForeignKey(x => x.ReceiverID)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
 
-            modelBuilder.Entity<Match>()
-                .HasOne(x => x.User1)
+        modelBuilder.Entity<Match>(entity =>
+        {
+            entity.Property(x => x.MatchedDate).HasDefaultValueSql("GETDATE()");
+            entity.Property(x => x.Status).HasDefaultValue((byte)1);
+
+            entity.Property<string>("PairKey")
+                .HasMaxLength(50)
+                .HasComputedColumnSql(
+                    "CASE WHEN [User1ID] < [User2ID] THEN CONCAT([User1ID],N'-',[User2ID]) ELSE CONCAT([User2ID],N'-',[User1ID]) END",
+                    stored: true);
+
+            entity.HasIndex("PairKey").IsUnique();
+
+            entity.HasOne(x => x.Like)
+                .WithMany()
+                .HasForeignKey(x => x.LikeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.User1)
                 .WithMany(x => x.MatchesAsUser1)
                 .HasForeignKey(x => x.User1ID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Match>()
-                .HasOne(x => x.User2)
+            entity.HasOne(x => x.User2)
                 .WithMany(x => x.MatchesAsUser2)
                 .HasForeignKey(x => x.User2ID)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
 
-            modelBuilder.Entity<Message>()
-                .HasOne(x => x.Match)
+        modelBuilder.Entity<Message>(entity =>
+        {
+            entity.Property(x => x.SentTime).HasDefaultValueSql("GETDATE()");
+            entity.Property(x => x.IsRead).HasDefaultValue(false);
+
+            entity.HasOne(x => x.Match)
                 .WithMany(x => x.Messages)
                 .HasForeignKey(x => x.MatchID)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Message>()
-                .HasOne(x => x.Sender)
+            entity.HasOne(x => x.Sender)
                 .WithMany(x => x.MessagesSent)
                 .HasForeignKey(x => x.SenderID)
                 .OnDelete(DeleteBehavior.Restrict);
-        }
+        });
     }
 }

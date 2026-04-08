@@ -1,0 +1,63 @@
+@{
+    ViewData["Title"] = "Danh sách ghép đôi";
+}
+
+<h1 class="hl-page-title">Danh sách ghép đôi</h1>
+
+<div id="matchesMessage" class="alert" style="display:none;"></div>
+<div id="matchesContainer"></div>
+
+@section Scripts {
+<script>
+async function loadMatches() {
+    try {
+        const matches = await HeartLink.apiFetch("/api/client/matches");
+
+        if (!matches.length) {
+            HeartLink.setHtml("matchesContainer", `<div class="hl-empty">Bạn chưa có match nào.</div>`);
+            return;
+        }
+
+        const html = matches.map(m => `
+            <div class="card hl-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <div>
+                        <h5 class="mb-1">${m.otherUserName || "Người dùng"}</h5>
+                        <div class="hl-meta">Ghép đôi lúc: ${HeartLink.formatDateTime(m.matchedDate)}</div>
+                        <div class="hl-meta">Tin nhắn cuối: ${m.lastMessage || "Chưa có tin nhắn"}</div>
+                        <div class="hl-meta">Chưa đọc: ${m.unreadCount}</div>
+                    </div>
+                    <div class="hl-actions">
+                        <a class="btn btn-primary" href="/messages/${m.matchID}">Nhắn tin</a>
+                        <button class="btn btn-outline-danger" onclick="cancelMatch(${m.matchID})">Hủy match</button>
+                    </div>
+                </div>
+            </div>
+        `).join("");
+
+        HeartLink.setHtml("matchesContainer", html);
+    } catch (error) {
+        HeartLink.showMessage("matchesMessage", error.message, "danger");
+    }
+}
+
+async function cancelMatch(matchId) {
+    if (!confirm("Bạn chắc chắn muốn hủy kết nối?")) return;
+
+    try {
+        const result = await HeartLink.apiFetch(`/api/client/matches/${matchId}/cancel`, {
+            method: "POST"
+        });
+        HeartLink.showMessage("matchesMessage", result.message || "Đã hủy match.", "success");
+        loadMatches();
+    } catch (error) {
+        HeartLink.showMessage("matchesMessage", error.message, "danger");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (!HeartLink.requireAuth()) return;
+    loadMatches();
+});
+</script>
+}

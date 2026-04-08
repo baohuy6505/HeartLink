@@ -1,0 +1,87 @@
+@{
+    ViewData["Title"] = "Cài đặt bộ lọc";
+}
+
+<div class="card hl-card p-4 hl-form-card">
+    <h1 class="hl-page-title">Cài đặt bộ lọc tìm kiếm</h1>
+
+    <div id="filterMessage" class="alert" style="display:none;"></div>
+
+    <form id="filterForm" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Giới tính muốn tìm</label>
+            <select id="targetGender" class="form-select">
+                <option value="Tất cả">Tất cả</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Tuổi tối thiểu</label>
+            <input id="minAge" type="number" class="form-control" min="18" max="99" />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Tuổi tối đa</label>
+            <input id="maxAge" type="number" class="form-control" min="18" max="99" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Khoảng cách (km)</label>
+            <input id="radius" type="number" class="form-control" min="1" max="500" />
+        </div>
+
+        <div class="col-12">
+            <button class="btn btn-primary" type="submit">Lưu bộ lọc</button>
+            <a class="btn btn-outline-secondary" href="/discovery">Qua trang quẹt hồ sơ</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!HeartLink.requireAuth()) return;
+
+    try {
+        const profile = await HeartLink.apiFetch("/api/client/profile/me");
+        document.getElementById("targetGender").value = profile.targetGender || "Tất cả";
+        document.getElementById("minAge").value = profile.minAge || 18;
+        document.getElementById("maxAge").value = profile.maxAge || 99;
+        document.getElementById("radius").value = profile.radius || 50;
+    } catch (error) {
+        HeartLink.showMessage("filterMessage", error.message, "danger");
+    }
+
+    document.getElementById("filterForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const minAge = parseInt(document.getElementById("minAge").value);
+        const maxAge = parseInt(document.getElementById("maxAge").value);
+
+        if (minAge > maxAge) {
+            HeartLink.showMessage("filterMessage", "MinAge không được lớn hơn MaxAge.", "danger");
+            return;
+        }
+
+        try {
+            const result = await HeartLink.apiFetch("/api/client/profile/filter", {
+                method: "PUT",
+                body: {
+                    targetGender: document.getElementById("targetGender").value,
+                    minAge,
+                    maxAge,
+                    radius: parseFloat(document.getElementById("radius").value)
+                }
+            });
+
+            HeartLink.showMessage("filterMessage", result.message || "Lưu bộ lọc thành công.", "success");
+        } catch (error) {
+            HeartLink.showMessage("filterMessage", error.message, "danger");
+        }
+    });
+});
+</script>
+}

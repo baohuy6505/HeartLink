@@ -1,0 +1,80 @@
+@{
+    ViewData["Title"] = "Tin nhắn";
+    var matchId = (int)ViewBag.MatchId;
+}
+
+<h1 class="hl-page-title">Nhắn tin</h1>
+
+<div id="messagePageAlert" class="alert" style="display:none;"></div>
+
+<div class="card hl-card p-4">
+    <div id="chatBox" class="hl-chat-box mb-3"></div>
+
+    <form id="sendMessageForm" class="d-flex gap-2">
+        <input id="messageContent" class="form-control" placeholder="Nhập tin nhắn..." />
+        <button class="btn btn-primary" type="submit">Gửi</button>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+const matchId = @matchId;
+
+async function loadMessages() {
+    try {
+        const messages = await HeartLink.apiFetch(`/api/client/messages/${matchId}`);
+        const auth = HeartLink.getAuth();
+
+        const html = messages.map(m => `
+            <div class="hl-message ${m.senderID === auth.accountId ? 'mine' : 'theirs'}">
+                <div>${m.content}</div>
+                <div class="small text-muted mt-1">${HeartLink.formatDateTime(m.sentTime)}</div>
+            </div>
+        `).join("");
+
+        HeartLink.setHtml("chatBox", html || `<div class="text-muted">Chưa có tin nhắn nào.</div>`);
+
+        const chatBox = document.getElementById("chatBox");
+        chatBox.scrollTop = chatBox.scrollHeight;
+    } catch (error) {
+        HeartLink.showMessage("messagePageAlert", error.message, "danger");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (!HeartLink.requireAuth()) return;
+
+    loadMessages();
+
+    document.getElementById("sendMessageForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const input = document.getElementById("messageContent");
+        const content = input.value.trim();
+
+        if (!content) {
+            HeartLink.showMessage("messagePageAlert", "Nội dung tin nhắn không được rỗng.", "danger");
+            return;
+        }
+
+        try {
+            await HeartLink.apiFetch("/api/client/messages/send", {
+                method: "POST",
+                body: {
+                    matchID: matchId,
+                    content: content
+                }
+            });
+
+            input.value = "";
+            HeartLink.clearMessage("messagePageAlert");
+            await loadMessages();
+        } catch (error) {
+            HeartLink.showMessage("messagePageAlert", error.message, "danger");
+        }
+    });
+
+    setInterval(loadMessages, 5000);
+});
+</script>
+}

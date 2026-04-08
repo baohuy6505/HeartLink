@@ -1,29 +1,47 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HeartLink.Models
+namespace HeartLink.Models;
+
+[Table("PROFILE")]
+public class Profile
 {
-    public class Profile
-    {
-        [Key]
-        public int ProfileID { get; set; }
+    [Key]
+    public int ProfileID { get; set; }
 
-        public int AccountID { get; set; }
-        public string? FullName { get; set; }
-        public DateTime? BirthDate { get; set; }
-        public string? Gender { get; set; }
-        public string? Bio { get; set; }
-        public string? Location { get; set; }
-        public string? Avatar { get; set; }
-        public string? Interests { get; set; }
-        public string? TargetGender { get; set; }
-        public int? MinAge { get; set; }
-        public int? MaxAge { get; set; }
-        public int? Radius { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
+    [Required]
+    public int AccountID { get; set; }
 
-        [ForeignKey("AccountID")]
-        public Account? Account { get; set; }
-    }
+    [Required, MaxLength(100)]
+    public string FullName { get; set; } = null!;
+
+    [Required]
+    public DateTime BirthDate { get; set; }
+
+    [Required, MaxLength(10)]
+    public string Gender { get; set; } = null!;
+
+    [MaxLength(500)]
+    public string? Bio { get; set; }
+
+    [MaxLength(255)]
+    public string? Location { get; set; }
+
+    [MaxLength(255)]
+    public string? Avatar { get; set; }
+
+    [MaxLength(10)]
+    public string? TargetGender { get; set; }
+
+    public int MinAge { get; set; } = 18;
+
+    public int MaxAge { get; set; } = 99;
+
+    public double Radius { get; set; } = 50;
+
+    public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+    public Account Account { get; set; } = null!;
+
+    public ICollection<ProfileInterest> Interests { get; set; } = new List<ProfileInterest>();
 }

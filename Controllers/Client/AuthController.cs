@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using HeartLink.Data;
 using HeartLink.Models;
 using HeartLink.Models.Auth;
@@ -7,183 +8,172 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace HeartLink.Controllers.Client
+namespace HeartLink.Controllers.Client;
+
+[ApiController]
+[Route("api/client/auth")]
+public class AuthController : ControllerBase
 {
-    [ApiController]
-    [Route("api/client/auth")]
-    public class AuthController : ControllerBase
+    private readonly ApplicationDbContext _context;
+    private readonly JwtService _jwtService;
+    private readonly PasswordHasher<Account> _passwordHasher = new();
+
+    public AuthController(ApplicationDbContext context, JwtService jwtService)
     {
-        private readonly ApplicationDbContext _context;
-        private readonly PasswordHasher<Account> _hasher;
-        private readonly JwtService _jwtService;
+        _context = context;
+        _jwtService = jwtService;
+    }
 
-        public AuthController(ApplicationDbContext context, JwtService jwtService)
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        if (request.BirthDate.Date > DateTime.Today.AddYears(-18))
+            return BadRequest(new { message = "Người dùng phải từ 18 tuổi trở lên." });
+
+        if (request.MinAge > request.MaxAge)
+            return BadRequest(new { message = "MinAge không được lớn hơn MaxAge." });
+
+        var email = request.Email.Trim().ToLower();
+        var phone = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
+
+        if (await _context.Accounts.AnyAsync(x => x.Email.ToLower() == email))
+            return BadRequest(new { message = "Email đã tồn tại." });
+
+        if (!string.IsNullOrWhiteSpace(phone) &&
+            await _context.Accounts.AnyAsync(x => x.PhoneNumber == phone))
+            return BadRequest(new { message = "Số điện thoại đã tồn tại." });
+
+        var account = new Account
         {
-            _context = context;
-            _hasher = new PasswordHasher<Account>();
-            _jwtService = jwtService;
-        }
+            Email = email,
+            PhoneNumber = phone,
+            UserRole = "User",
+            Status = true,
+            CreatedDate = DateTime.Now
+        };
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        account.Password = _passwordHasher.HashPassword(account, request.Password);
+
+        var profile = new Profile
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            Account = account,
+            FullName = request.FullName.Trim(),
+            BirthDate = request.BirthDate.Date,
+            Gender = request.Gender,
+            Bio = string.IsNullOrWhiteSpace(request.Bio) ? null : request.Bio.Trim(),
+            Location = string.IsNullOrWhiteSpace(request.Location) ? null : request.Location.Trim(),
+            Avatar = string.IsNullOrWhiteSpace(request.Avatar) ? null : request.Avatar.Trim(),
+            TargetGender = string.IsNullOrWhiteSpace(request.TargetGender) ? "Tất cả" : request.TargetGender,
+            MinAge = request.MinAge,
+            MaxAge = request.MaxAge,
+            Radius = request.Radius,
+            CreatedDate = DateTime.Now
+        };
 
-            if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
-                return BadRequest(new { message = "Phải nhập Email hoặc Số điện thoại" });
-
-            if (request.BirthDate.HasValue && request.BirthDate.Value.Date > DateTime.Today)
-                return BadRequest(new { message = "Ngày sinh không hợp lệ" });
-
-            if (request.BirthDate.HasValue)
+        var interests = request.Interests
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .Select(x => new ProfileInterest
             {
-                var age = DateTime.Today.Year - request.BirthDate.Value.Year;
-                if (request.BirthDate.Value.Date > DateTime.Today.AddYears(-age)) age--;
-                if (age < 18)
-                    return BadRequest(new { message = "Người dùng phải từ 18 tuổi trở lên" });
-            }
+                Profile = profile,
+                InterestName = x
+            })
+            .ToList();
 
-            var email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim().ToLower();
-            var phone = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
+        profile.Interests = interests;
+        account.Profile = profile;
 
-            var existsByEmail = email != null &&
-                                await _context.Accounts.AnyAsync(x => x.Email != null && x.Email.ToLower() == email);
+        _context.Accounts.Add(account);
+        await _context.SaveChangesAsync();
 
-            if (existsByEmail)
-                return BadRequest(new { message = "Email đã được sử dụng" });
+        var token = _jwtService.GenerateToken(account);
 
-            var existsByPhone = phone != null &&
-                                await _context.Accounts.AnyAsync(x => x.PhoneNumber == phone);
-
-            if (existsByPhone)
-                return BadRequest(new { message = "Số điện thoại đã được sử dụng" });
-
-            var account = new Account
-            {
-                Email = email,
-                PhoneNumber = phone,
-                Status = "Active",
-                Role = "User",
-                CreatedDate = DateTime.Now
-            };
-
-            account.PasswordHash = _hasher.HashPassword(account, request.Password);
-
-            _context.Accounts.Add(account);
-            await _context.SaveChangesAsync();
-
-            var profile = new Profile
-            {
-                AccountID = account.AccountID,
-                FullName = request.FullName.Trim(),
-                BirthDate = request.BirthDate,
-                Gender = request.Gender,
-                CreatedAt = DateTime.Now
-            };
-
-            _context.Profiles.Add(profile);
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                message = "Đăng ký thành công",
-                accountId = account.AccountID,
-                role = account.Role
-            });
-        }
-
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        return Ok(new
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            message = "Đăng ký thành công",
+            accountId = account.AccountID,
+            token
+        });
+    }
 
-            if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.PhoneNumber))
-                return BadRequest(new { message = "Phải nhập Email hoặc Số điện thoại" });
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-            var email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim().ToLower();
-            var phone = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
+        var keyword = request.EmailOrPhone.Trim().ToLower();
 
-            var account = await _context.Accounts
-                .FirstOrDefaultAsync(x =>
-                    (email != null && x.Email != null && x.Email.ToLower() == email) ||
-                    (phone != null && x.PhoneNumber == phone));
+        var account = await _context.Accounts
+            .Include(x => x.Profile)
+            .FirstOrDefaultAsync(x =>
+                x.Email.ToLower() == keyword ||
+                (x.PhoneNumber != null && x.PhoneNumber == request.EmailOrPhone.Trim()));
 
-            if (account == null)
-                return BadRequest(new { message = "Tài khoản không tồn tại" });
+        if (account == null)
+            return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu." });
 
-            if (account.Role != "User" && account.Role != "Admin")
-                return BadRequest(new { message = "Vai trò tài khoản không hợp lệ" });
+        if (!account.Status)
+            return Unauthorized(new { message = "Tài khoản đã bị khóa." });
 
-            if (account.Status == "Banned")
-                return BadRequest(new { message = "Tài khoản đã bị khóa" });
+        var verifyResult = _passwordHasher.VerifyHashedPassword(account, account.Password, request.Password);
+        if (verifyResult == PasswordVerificationResult.Failed)
+            return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu." });
 
-            if (account.Status != "Active")
-                return BadRequest(new { message = "Tài khoản không hoạt động" });
+        var token = _jwtService.GenerateToken(account);
 
-            var result = _hasher.VerifyHashedPassword(account, account.PasswordHash, request.Password);
-
-            if (result == PasswordVerificationResult.Failed)
-                return BadRequest(new { message = "Mật khẩu không đúng" });
-
-            account.LastLoginAt = DateTime.Now;
-            await _context.SaveChangesAsync();
-
-            var token = _jwtService.GenerateToken(account);
-
-            return Ok(new
-            {
-                message = "Đăng nhập thành công",
-                token,
-                accountId = account.AccountID,
-                role = account.Role
-            });
-        }
-
-        [Authorize(Roles = "User,Admin")]
-        [HttpPost("change-password")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        return Ok(new
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            message = "Đăng nhập thành công",
+            token,
+            accountId = account.AccountID,
+            email = account.Email,
+            role = account.UserRole,
+            fullName = account.Profile?.FullName
+        });
+    }
 
-            if (request.NewPassword != request.ConfirmNewPassword)
-                return BadRequest(new { message = "Xác nhận mật khẩu mới không khớp" });
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-            if (request.OldPassword == request.NewPassword)
-                return BadRequest(new { message = "Mật khẩu mới không được trùng mật khẩu cũ" });
+        var accountId = GetCurrentAccountId();
 
-            var accountIdClaim = User.FindFirst("AccountID")?.Value;
-            if (string.IsNullOrWhiteSpace(accountIdClaim))
-                return Unauthorized(new { message = "Token không hợp lệ" });
+        var account = await _context.Accounts.FindAsync(accountId);
+        if (account == null)
+            return NotFound(new { message = "Không tìm thấy tài khoản." });
 
-            var accountId = int.Parse(accountIdClaim);
+        var verifyResult = _passwordHasher.VerifyHashedPassword(account, account.Password, request.OldPassword);
+        if (verifyResult == PasswordVerificationResult.Failed)
+            return BadRequest(new { message = "Mật khẩu cũ không đúng." });
 
-            var account = await _context.Accounts.FirstOrDefaultAsync(x => x.AccountID == accountId);
-            if (account == null)
-                return NotFound(new { message = "Không tìm thấy tài khoản" });
+        account.Password = _passwordHasher.HashPassword(account, request.NewPassword);
+        await _context.SaveChangesAsync();
 
-            var verifyOldPassword = _hasher.VerifyHashedPassword(account, account.PasswordHash, request.OldPassword);
-            if (verifyOldPassword == PasswordVerificationResult.Failed)
-                return BadRequest(new { message = "Mật khẩu cũ không đúng" });
+        return Ok(new { message = "Đổi mật khẩu thành công." });
+    }
 
-            account.PasswordHash = _hasher.HashPassword(account, request.NewPassword);
-            account.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Đổi mật khẩu thành công" });
-        }
-
-        [Authorize(Roles = "User,Admin")]
-        [HttpPost("logout")]
-        public IActionResult Logout()
+    [Authorize]
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        return Ok(new
         {
-            return Ok(new
-            {
-                message = "Đăng xuất thành công."
-            });
-        }
+            message = "Đăng xuất thành công."
+        });
+    }
+
+    private int GetCurrentAccountId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.Parse(claim!);
     }
 }

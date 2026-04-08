@@ -1,16 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace HeartLink.Models.Auth
+namespace HeartLink.Models.Auth;
+
+public class LoginRequest
 {
-    public class LoginRequest
-    {
-        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
-        public string? Email { get; set; }
+    [Required]
+    public string EmailOrPhone { get; set; } = null!;
 
-        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
-        public string? PhoneNumber { get; set; }
-
-        [Required(ErrorMessage = "Mật khẩu không được để trống")]
-        public string Password { get; set; } = string.Empty;
-    }
+    [Required]
+    public string Password { get; set; } = null!;
 }

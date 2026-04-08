@@ -1,0 +1,105 @@
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="hl-page-title mb-0">Quản lý người dùng</h1>
+    <a class="btn btn-outline-secondary" href="/admin">Về dashboard</a>
+</div>
+
+<div id="adminUsersMessage" class="alert" style="display:none;"></div>
+
+<div class="card hl-card p-3 mb-3">
+    <div class="row g-2">
+        <div class="col-md-8">
+            <input id="keyword" class="form-control" placeholder="Tìm theo email, số điện thoại, họ tên..." />
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary w-100" onclick="loadUsers()">Tìm kiếm</button>
+        </div>
+    </div>
+</div>
+
+<div id="usersContainer"></div>
+
+@section Scripts {
+<script>
+let currentPage = 1;
+
+async function loadUsers(page = 1) {
+    currentPage = page;
+    const keyword = document.getElementById("keyword").value.trim();
+
+    try {
+        const data = await HeartLink.apiFetch(`/api/admin/dashboard/users?page=${page}&pageSize=10&keyword=${encodeURIComponent(keyword)}`);
+
+        if (!data.items.length) {
+            document.getElementById("usersContainer").innerHTML = `<div class="hl-empty">Không có dữ liệu người dùng.</div>`;
+            return;
+        }
+
+        const html = data.items.map(u => `
+            <div class="card hl-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h5 class="mb-1">${u.fullName || "Chưa cập nhật tên"}</h5>
+                        <div class="hl-meta">Email: ${u.email}</div>
+                        <div class="hl-meta">SĐT: ${u.phoneNumber || "Chưa có"}</div>
+                        <div class="hl-meta">Role: ${u.userRole}</div>
+                        <div class="hl-meta">Trạng thái: ${u.status ? "Hoạt động" : "Bị khóa"}</div>
+                        <div class="hl-meta">Ngày tạo: ${HeartLink.formatDateTime(u.createdDate)}</div>
+                    </div>
+                    <div class="hl-actions">
+                        ${u.userRole === "Admin" ? "" : (u.status
+                            ? `<button class="btn btn-outline-danger" onclick="banUser(${u.accountID})">Khóa</button>`
+                            : `<button class="btn btn-outline-success" onclick="unbanUser(${u.accountID})">Mở khóa</button>`
+                        )}
+                    </div>
+                </div>
+            </div>
+        `).join("");
+
+        document.getElementById("usersContainer").innerHTML = `
+            ${html}
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                <button class="btn btn-outline-secondary" ${data.page <= 1 ? "disabled" : ""} onclick="loadUsers(${data.page - 1})">Trang trước</button>
+                <button class="btn btn-outline-secondary" ${(data.page * data.pageSize >= data.totalItems) ? "disabled" : ""} onclick="loadUsers(${data.page + 1})">Trang sau</button>
+            </div>
+        `;
+    } catch (error) {
+        HeartLink.showMessage("adminUsersMessage", error.message, "danger");
+    }
+}
+
+async function banUser(accountId) {
+    if (!confirm("Bạn chắc chắn muốn khóa tài khoản này?")) return;
+
+    try {
+        const result = await HeartLink.apiFetch(`/api/admin/dashboard/users/${accountId}/ban`, {
+            method: "POST"
+        });
+        HeartLink.showMessage("adminUsersMessage", result.message || "Khóa tài khoản thành công.", "success");
+        loadUsers(currentPage);
+    } catch (error) {
+        HeartLink.showMessage("adminUsersMessage", error.message, "danger");
+    }
+}
+
+async function unbanUser(accountId) {
+    try {
+        const result = await HeartLink.apiFetch(`/api/admin/dashboard/users/${accountId}/unban`, {
+            method: "POST"
+        });
+        HeartLink.showMessage("adminUsersMessage", result.message || "Mở khóa tài khoản thành công.", "success");
+        loadUsers(currentPage);
+    } catch (error) {
+        HeartLink.showMessage("adminUsersMessage", error.message, "danger");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (!HeartLink.requireAdmin()) return;
+    loadUsers(1);
+});
+</script>
+}

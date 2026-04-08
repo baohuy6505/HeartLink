@@ -1,28 +1,50 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace HeartLink.Models.Auth
+namespace HeartLink.Models.Auth;
+
+public class RegisterRequest
 {
-    public class RegisterRequest
-    {
-        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
-        public string? Email { get; set; }
+    [Required, EmailAddress, MaxLength(100)]
+    public string Email { get; set; } = null!;
 
-        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
-        [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự")]
-        public string? PhoneNumber { get; set; }
+    [Required, MinLength(6), MaxLength(100)]
+    public string Password { get; set; } = null!;
 
-        [Required(ErrorMessage = "Mật khẩu không được để trống")]
-        [MinLength(6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự")]
-        [MaxLength(100, ErrorMessage = "Mật khẩu tối đa 100 ký tự")]
-        public string Password { get; set; } = string.Empty;
+    [Required, Compare(nameof(Password))]
+    public string ConfirmPassword { get; set; } = null!;
 
-        [Required(ErrorMessage = "Họ tên không được để trống")]
-        [StringLength(100, ErrorMessage = "Họ tên tối đa 100 ký tự")]
-        public string FullName { get; set; } = string.Empty;
+    [MaxLength(15)]
+    public string? PhoneNumber { get; set; }
 
-        public DateTime? BirthDate { get; set; }
+    [Required, MaxLength(100)]
+    public string FullName { get; set; } = null!;
 
-        [StringLength(20, ErrorMessage = "Giới tính tối đa 20 ký tự")]
-        public string? Gender { get; set; }
-    }
+    [Required]
+    public DateTime BirthDate { get; set; }
+
+    [Required, RegularExpression("Nam|Nữ|Khác")]
+    public string Gender { get; set; } = null!;
+
+    [MaxLength(500)]
+    public string? Bio { get; set; }
+
+    [MaxLength(255)]
+    public string? Location { get; set; }
+
+    [MaxLength(255)]
+    public string? Avatar { get; set; }
+
+    [RegularExpression("Nam|Nữ|Khác|Tất cả")]
+    public string TargetGender { get; set; } = "Tất cả";
+
+    [Range(18, 99)]
+    public int MinAge { get; set; } = 18;
+
+    [Range(18, 99)]
+    public int MaxAge { get; set; } = 99;
+
+    [Range(1, 500)]
+    public double Radius { get; set; } = 50;
+
+    public List<string> Interests { get; set; } = new();
 }

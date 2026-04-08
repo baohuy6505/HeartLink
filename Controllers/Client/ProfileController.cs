@@ -1,103 +1,150 @@
+using System.Security.Claims;
 using HeartLink.Data;
+using HeartLink.Models;
 using HeartLink.Models.ProfileDtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace HeartLink.Controllers.Client
+namespace HeartLink.Controllers.Client;
+
+[ApiController]
+[Authorize]
+[Route("api/client/profile")]
+public class ProfileController : ControllerBase
 {
-    [ApiController]
-    [Route("api/client/profile")]
-    [Authorize(Roles = "User,Admin")]
-    public class ProfileController : ControllerBase
+    private readonly ApplicationDbContext _context;
+
+    public ProfileController(ApplicationDbContext context)
     {
-        private readonly ApplicationDbContext _context;
+        _context = context;
+    }
 
-        public ProfileController(ApplicationDbContext context)
-        {
-            _context = context;
-        }
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMyProfile()
+    {
+        var accountId = GetCurrentAccountId();
 
-        [HttpGet("me")]
-        public async Task<IActionResult> GetMyProfile()
-        {
-            var accountIdClaim = User.FindFirst("AccountID")?.Value;
-            if (string.IsNullOrWhiteSpace(accountIdClaim))
-                return Unauthorized(new { message = "Token không hợp lệ" });
+        var profile = await _context.Profiles
+            .Include(x => x.Account)
+            .Include(x => x.Interests)
+            .Where(x => x.AccountID == accountId)
+            .Select(x => new
+            {
+                x.ProfileID,
+                x.AccountID,
+                Email = x.Account.Email,
+                x.Account.PhoneNumber,
+                x.Account.UserRole,
+                x.FullName,
+                x.BirthDate,
+                Age = CalculateAge(x.BirthDate),
+                x.Gender,
+                x.Bio,
+                x.Location,
+                x.Avatar,
+                x.TargetGender,
+                x.MinAge,
+                x.MaxAge,
+                x.Radius,
+                Interests = x.Interests.Select(i => i.InterestName).ToList()
+            })
+            .FirstOrDefaultAsync();
 
-            var accountId = int.Parse(accountIdClaim);
+        if (profile == null)
+            return NotFound(new { message = "Không tìm thấy hồ sơ." });
 
-            var profile = await _context.Profiles
-                .Include(x => x.Account)
-                .Where(x => x.AccountID == accountId)
-                .Select(x => new
-                {
-                    x.ProfileID,
-                    x.AccountID,
-                    x.FullName,
-                    x.BirthDate,
-                    x.Gender,
-                    x.Bio,
-                    x.Location,
-                    x.Avatar,
-                    x.Interests,
-                    x.TargetGender,
-                    x.MinAge,
-                    x.MaxAge,
-                    x.Radius,
-                    x.CreatedAt,
-                    x.UpdatedAt,
-                    Email = x.Account!.Email,
-                    PhoneNumber = x.Account!.PhoneNumber,
-                    Role = x.Account!.Role,
-                    Status = x.Account!.Status
-                })
-                .FirstOrDefaultAsync();
+        return Ok(profile);
+    }
 
-            if (profile == null)
-                return NotFound(new { message = "Không tìm thấy hồ sơ" });
+    [HttpPut("update")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-            return Ok(profile);
-        }
+        if (request.BirthDate.Date > DateTime.Today.AddYears(-18))
+            return BadRequest(new { message = "Người dùng phải từ 18 tuổi trở lên." });
 
-        [HttpPut("update")]
-        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+        if (request.MinAge > request.MaxAge)
+            return BadRequest(new { message = "MinAge không được lớn hơn MaxAge." });
 
-            if (request.BirthDate.HasValue && request.BirthDate.Value.Date > DateTime.Today)
-                return BadRequest(new { message = "Ngày sinh không hợp lệ" });
+        var accountId = GetCurrentAccountId();
 
-            if (request.MinAge.HasValue && request.MaxAge.HasValue && request.MinAge > request.MaxAge)
-                return BadRequest(new { message = "MinAge không được lớn hơn MaxAge" });
+        var profile = await _context.Profiles
+            .Include(x => x.Interests)
+            .FirstOrDefaultAsync(x => x.AccountID == accountId);
 
-            var accountIdClaim = User.FindFirst("AccountID")?.Value;
-            if (string.IsNullOrWhiteSpace(accountIdClaim))
-                return Unauthorized(new { message = "Token không hợp lệ" });
+        if (profile == null)
+            return NotFound(new { message = "Không tìm thấy hồ sơ." });
 
-            var accountId = int.Parse(accountIdClaim);
+        profile.FullName = request.FullName.Trim();
+        profile.BirthDate = request.BirthDate.Date;
+        profile.Gender = request.Gender;
+        profile.Bio = string.IsNullOrWhiteSpace(request.Bio) ? null : request.Bio.Trim();
+        profile.Location = string.IsNullOrWhiteSpace(request.Location) ? null : request.Location.Trim();
+        profile.Avatar = string.IsNullOrWhiteSpace(request.Avatar) ? null : request.Avatar.Trim();
+        profile.TargetGender = string.IsNullOrWhiteSpace(request.TargetGender) ? "Tất cả" : request.TargetGender;
+        profile.MinAge = request.MinAge;
+        profile.MaxAge = request.MaxAge;
+        profile.Radius = request.Radius;
 
-            var profile = await _context.Profiles.FirstOrDefaultAsync(x => x.AccountID == accountId);
-            if (profile == null)
-                return NotFound(new { message = "Không tìm thấy hồ sơ" });
+        _context.ProfileInterests.RemoveRange(profile.Interests);
 
-            profile.FullName = request.FullName.Trim();
-            profile.BirthDate = request.BirthDate;
-            profile.Gender = request.Gender;
-            profile.Bio = request.Bio;
-            profile.Location = request.Location;
-            profile.Avatar = request.Avatar;
-            profile.Interests = request.Interests;
-            profile.TargetGender = request.TargetGender;
-            profile.MinAge = request.MinAge;
-            profile.MaxAge = request.MaxAge;
-            profile.Radius = request.Radius;
-            profile.UpdatedAt = DateTime.Now;
+        var newInterests = request.Interests
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .Select(x => new ProfileInterest
+            {
+                ProfileID = profile.ProfileID,
+                InterestName = x
+            })
+            .ToList();
 
-            await _context.SaveChangesAsync();
+        await _context.ProfileInterests.AddRangeAsync(newInterests);
+        await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Cập nhật hồ sơ thành công" });
-        }
+        return Ok(new { message = "Cập nhật hồ sơ thành công." });
+    }
+
+    [HttpPut("filter")]
+    public async Task<IActionResult> SetFilter([FromBody] SetFilterRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        if (request.MinAge > request.MaxAge)
+            return BadRequest(new { message = "MinAge không được lớn hơn MaxAge." });
+
+        var accountId = GetCurrentAccountId();
+
+        var profile = await _context.Profiles.FirstOrDefaultAsync(x => x.AccountID == accountId);
+        if (profile == null)
+            return NotFound(new { message = "Không tìm thấy hồ sơ." });
+
+        profile.TargetGender = request.TargetGender;
+        profile.MinAge = request.MinAge;
+        profile.MaxAge = request.MaxAge;
+        profile.Radius = request.Radius;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Cập nhật bộ lọc thành công." });
+    }
+
+    private int GetCurrentAccountId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.Parse(claim!);
+    }
+
+    private static int CalculateAge(DateTime birthDate)
+    {
+        var today = DateTime.Today;
+        var age = today.Year - birthDate.Year;
+        if (birthDate.Date > today.AddYears(-age)) age--;
+        return age;
     }
 }

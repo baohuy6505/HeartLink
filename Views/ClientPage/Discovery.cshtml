@@ -1,0 +1,104 @@
+@{
+    ViewData["Title"] = "Khám phá";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="hl-page-title mb-0">Khám phá</h1>
+        <div class="hl-subtitle mb-0">Chọn hồ sơ phù hợp và bắt đầu kết nối</div>
+    </div>
+    <a class="btn btn-outline-secondary" href="/profile/filter">Bộ lọc</a>
+</div>
+
+<div id="discoveryMessage" class="alert" style="display:none;"></div>
+<div id="candidateContainer"></div>
+
+@section Scripts {
+<script>
+let candidates = [];
+let currentIndex = 0;
+
+async function loadCandidates() {
+    HeartLink.clearMessage("discoveryMessage");
+
+    try {
+        candidates = await HeartLink.apiFetch("/api/client/discovery/candidates?take=10");
+        currentIndex = 0;
+        renderCurrentCandidate();
+    } catch (error) {
+        HeartLink.showMessage("discoveryMessage", error.message, "danger");
+    }
+}
+
+function renderCurrentCandidate() {
+    const container = document.getElementById("candidateContainer");
+
+    if (!candidates.length || currentIndex >= candidates.length) {
+        container.innerHTML = `
+            <div class="hl-empty">
+                Không còn hồ sơ phù hợp lúc này. Hãy thử đổi bộ lọc hoặc quay lại sau.
+            </div>
+        `;
+        return;
+    }
+
+    const p = candidates[currentIndex];
+    const interests = (p.interests || []).map(x => `<span class="hl-badge me-2 mb-2">${x}</span>`).join("");
+
+    container.innerHTML = `
+        <div class="card hl-card p-4 hl-discovery-card">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-5 text-center">
+                    <img class="hl-avatar" src="${p.avatar || 'https://via.placeholder.com/320x400?text=Avatar'}" alt="avatar" />
+                </div>
+                <div class="col-lg-7">
+                    <div class="hl-discovery-name">${p.fullName}, ${p.age}</div>
+                    <div class="hl-meta mb-2">${p.gender} • ${p.location || 'Chưa cập nhật địa điểm'}</div>
+
+                    <div class="hl-discovery-bio mb-3">
+                        ${p.bio || 'Người dùng này chưa cập nhật bio.'}
+                    </div>
+
+                    <div class="mb-4">
+                        ${interests || '<span class="text-muted">Chưa có sở thích nổi bật</span>'}
+                    </div>
+
+                    <div class="hl-actions">
+                        <button class="btn btn-outline-danger px-4" onclick="swipe('${p.accountID}', 'Pass')">Bỏ qua</button>
+                        <button class="btn btn-success px-4" onclick="swipe('${p.accountID}', 'Like')">Thích</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function swipe(receiverId, type) {
+    try {
+        const result = await HeartLink.apiFetch("/api/client/discovery/swipe", {
+            method: "POST",
+            body: {
+                receiverID: parseInt(receiverId),
+                type: type
+            }
+        });
+
+        if (result.isMatched) {
+            HeartLink.showMessage("discoveryMessage", "🎉 Kết đôi thành công!", "success");
+        } else {
+            HeartLink.clearMessage("discoveryMessage");
+        }
+
+        currentIndex++;
+        renderCurrentCandidate();
+    } catch (error) {
+        HeartLink.showMessage("discoveryMessage", error.message, "danger");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (!HeartLink.requireAuth()) return;
+    loadCandidates();
+});
+</script>
+}

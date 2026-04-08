@@ -1,0 +1,191 @@
+using System.Security.Claims;
+using HeartLink.Data;
+using HeartLink.Models;
+using HeartLink.Models.InteractionDtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace HeartLink.Controllers.Client;
+
+[ApiController]
+[Authorize]
+[Route("api/client/discovery")]
+public class DiscoveryController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+
+    public DiscoveryController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet("candidates")]
+    public async Task<IActionResult> GetCandidates([FromQuery] int take = 10)
+    {
+        var currentUserId = GetCurrentAccountId();
+        take = Math.Clamp(take, 1, 20);
+
+        var myProfile = await _context.Profiles.FirstOrDefaultAsync(x => x.AccountID == currentUserId);
+        if (myProfile == null)
+            return NotFound(new { message = "Không tìm thấy hồ sơ hiện tại." });
+
+        var likedIds = await _context.Likes
+            .Where(x => x.SenderID == currentUserId)
+            .Select(x => x.ReceiverID)
+            .ToListAsync();
+
+        var matchedIds = await _context.Matches
+            .Where(x => x.Status == 1 && (x.User1ID == currentUserId || x.User2ID == currentUserId))
+            .Select(x => x.User1ID == currentUserId ? x.User2ID : x.User1ID)
+            .ToListAsync();
+
+        var excludedIds = likedIds.Union(matchedIds).ToList();
+
+        var today = DateTime.Today;
+        var minBirthDate = today.AddYears(-(myProfile.MaxAge + 1)).AddDays(1);
+        var maxBirthDate = today.AddYears(-myProfile.MinAge);
+
+        var query = _context.Profiles
+            .Include(x => x.Interests)
+            .Where(x => x.AccountID != currentUserId && !excludedIds.Contains(x.AccountID));
+
+        if (!string.IsNullOrWhiteSpace(myProfile.TargetGender) && myProfile.TargetGender != "Tất cả")
+        {
+            query = query.Where(x => x.Gender == myProfile.TargetGender);
+        }
+
+        query = query.Where(x => x.BirthDate >= minBirthDate && x.BirthDate <= maxBirthDate);
+
+        // Radius hiện chưa lọc chính xác vì schema hiện tại chỉ có Location dạng text.
+        // Muốn lọc khoảng cách thật, nên thêm Latitude/Longitude.
+
+        var candidates = await query
+            .OrderByDescending(x => x.CreatedDate)
+            .Take(take)
+            .Select(x => new
+            {
+                x.ProfileID,
+                x.AccountID,
+                x.FullName,
+                Age = CalculateAge(x.BirthDate),
+                x.Gender,
+                x.Bio,
+                x.Location,
+                x.Avatar,
+                Interests = x.Interests.Select(i => i.InterestName).ToList()
+            })
+            .ToListAsync();
+
+        return Ok(candidates);
+    }
+
+    [HttpPost("swipe")]
+    public async Task<IActionResult> Swipe([FromBody] SwipeRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var senderId = GetCurrentAccountId();
+        var receiverId = request.ReceiverID;
+
+        if (senderId == receiverId)
+            return BadRequest(new { message = "Không thể tự tương tác với chính mình." });
+
+        var receiverExists = await _context.Accounts.AnyAsync(x => x.AccountID == receiverId && x.Status);
+        if (!receiverExists)
+            return NotFound(new { message = "Người nhận không tồn tại hoặc đã bị khóa." });
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            Like? currentLike = await _context.Likes
+                .FirstOrDefaultAsync(x => x.SenderID == senderId && x.ReceiverID == receiverId);
+
+            if (currentLike == null)
+            {
+                currentLike = new Like
+                {
+                    SenderID = senderId,
+                    ReceiverID = receiverId,
+                    Type = request.Type,
+                    Timestamp = DateTime.Now
+                };
+
+                _context.Likes.Add(currentLike);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                currentLike.Type = request.Type;
+                currentLike.Timestamp = DateTime.Now;
+                await _context.SaveChangesAsync();
+            }
+
+            var isMatched = false;
+            int? newMatchId = null;
+
+            if (request.Type == "Like")
+            {
+                var reverseLikeExists = await _context.Likes.AnyAsync(x =>
+                    x.SenderID == receiverId &&
+                    x.ReceiverID == senderId &&
+                    x.Type == "Like");
+
+                var matchExists = await _context.Matches.AnyAsync(x =>
+                    (x.User1ID == senderId && x.User2ID == receiverId) ||
+                    (x.User1ID == receiverId && x.User2ID == senderId));
+
+                if (reverseLikeExists && !matchExists)
+                {
+                    var user1 = Math.Min(senderId, receiverId);
+                    var user2 = Math.Max(senderId, receiverId);
+
+                    var match = new Match
+                    {
+                        LikeID = currentLike.LikeID,
+                        User1ID = user1,
+                        User2ID = user2,
+                        MatchedDate = DateTime.Now,
+                        Status = 1
+                    };
+
+                    _context.Matches.Add(match);
+                    await _context.SaveChangesAsync();
+
+                    isMatched = true;
+                    newMatchId = match.MatchID;
+                }
+            }
+
+            await transaction.CommitAsync();
+
+            return Ok(new
+            {
+                message = isMatched ? "Kết đôi thành công." : "Đã ghi nhận tương tác.",
+                isMatched,
+                matchId = newMatchId
+            });
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private int GetCurrentAccountId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.Parse(claim!);
+    }
+
+    private static int CalculateAge(DateTime birthDate)
+    {
+        var today = DateTime.Today;
+        var age = today.Year - birthDate.Year;
+        if (birthDate.Date > today.AddYears(-age)) age--;
+        return age;
+    }
+}

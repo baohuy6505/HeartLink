@@ -1,49 +1,46 @@
-using HeartLink.Models;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using HeartLink.Models;
+using Microsoft.IdentityModel.Tokens;
 
-namespace HeartLink.Services
+namespace HeartLink.Services;
+
+public class JwtService
 {
-    public class JwtService
+    private readonly IConfiguration _configuration;
+
+    public JwtService(IConfiguration configuration)
     {
-        private readonly IConfiguration _configuration;
+        _configuration = configuration;
+    }
 
-        public JwtService(IConfiguration configuration)
+    public string GenerateToken(Account account)
+    {
+        var jwtSection = _configuration.GetSection("Jwt");
+        var key = jwtSection["Key"];
+
+        var claims = new List<Claim>
         {
-            _configuration = configuration;
-        }
+            new Claim(ClaimTypes.NameIdentifier, account.AccountID.ToString()),
+            new Claim(ClaimTypes.Email, account.Email),
 
-        public string GenerateToken(Account account)
-        {
-            var jwtSettings = _configuration.GetSection("Jwt");
+            // 🔥 SỬA Ở ĐÂY
+            new Claim(ClaimTypes.Role, account.UserRole),
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
+            new Claim(ClaimTypes.Name, account.Email)
+        };
 
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, account.AccountID.ToString()),
-                new Claim("AccountID", account.AccountID.ToString()),
-                new Claim("Email", account.Email ?? string.Empty),
-                new Claim(ClaimTypes.Role, account.Role),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+        var token = new JwtSecurityToken(
+            issuer: jwtSection["Issuer"],
+            audience: jwtSection["Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(120),
+            signingCredentials: credentials);
 
-            var expireMinutes = int.Parse(jwtSettings["ExpireMinutes"]!);
-
-            var token = new JwtSecurityToken(
-                issuer: jwtSettings["Issuer"],
-                audience: jwtSettings["Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddMinutes(expireMinutes),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

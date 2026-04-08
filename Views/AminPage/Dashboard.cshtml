@@ -1,0 +1,49 @@
+@{
+    ViewData["Title"] = "Dashboard Admin";
+}
+
+<div class="mb-4">
+    <h1 class="hl-page-title mb-1">Dashboard Quản trị</h1>
+    <div class="hl-subtitle">Theo dõi người dùng, match và tin nhắn trong hệ thống</div>
+</div>
+
+<div id="adminDashboardMessage" class="alert" style="display:none;"></div>
+<div id="dashboardStats" class="row g-3"></div>
+
+<div class="mt-4">
+    <a class="btn btn-primary" href="/admin/users">Quản lý người dùng</a>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!HeartLink.requireAdmin()) return;
+
+    try {
+        const data = await HeartLink.apiFetch("/api/admin/dashboard/stats");
+
+        const cards = [
+            { title: "Tổng người dùng", value: data.totalUsers },
+            { title: "Đang hoạt động", value: data.activeUsers },
+            { title: "Bị khóa", value: data.bannedUsers },
+            { title: "Tổng match", value: data.totalMatches },
+            { title: "Match hoạt động", value: data.activeMatches },
+            { title: "Match đã hủy", value: data.cancelledMatches },
+            { title: "Tổng tin nhắn", value: data.totalMessages }
+        ];
+
+        document.getElementById("dashboardStats").innerHTML = cards.map(x => `
+            <div class="col-md-4 col-lg-3">
+                <div class="hl-stat-card">
+                    <div class="hl-stat-title">${x.title}</div>
+                    <div class="hl-stat-value">${x.value}</div>
+                </div>
+            </div>
+        `).join("");
+
+    } catch (error) {
+        HeartLink.showMessage("adminDashboardMessage", error.message, "danger");
+    }
+});
+</script>
+}
