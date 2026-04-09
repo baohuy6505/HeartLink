@@ -4,16 +4,20 @@
 }
 
 <div class="hl-section">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <div class="hl-blob" style="top:5%; left:10%; width:500px; height:500px; background:radial-gradient(circle, rgba(255, 77, 109, 0.05) 0%, transparent 70%);"></div>
     
     <div class="d-flex align-items-center justify-content-between mb-5">
         <div>
-            <h1 class="display-5 fw-extra-bold mb-0 text-gradient">Quản trị hệ thống</h1>
-            <p class="hl-meta fs-5">Tổng quan hoạt động và số liệu HeartLink</p>
+            <h1 class="display-5 fw-extra-bold mb-0 text-gradient d-flex align-items-center gap-3">
+                <i data-lucide="stars" class="text-orange-500 hl-star-shimmer"></i> 
+                Quản trị hệ thống
+            </h1>
+            <p class="hl-meta fs-5">Phân tích chuyên sâu & Tổng hợp số liệu HeartLink</p>
         </div>
         <div class="hl-glass-card p-3 d-flex align-items-center gap-3">
              <div class="bg-success rounded-circle" style="width:12px; height:12px; box-shadow:0 0 10px #198754;"></div>
-             <span class="fw-bold small">System Live</span>
+             <span class="fw-bold small">Trực tuyến</span>
         </div>
     </div>
 
@@ -44,7 +48,42 @@
             <div class="hl-glass-card p-4 text-center hover-scale transition-all border-danger border-opacity-25">
                 <div class="text-danger mb-3"><i data-lucide="shield-alert" size="32"></i></div>
                 <div id="stat-bannedUsers" class="display-6 fw-extra-bold">--</div>
-                <div class="hl-meta x-small mt-2">Đã bị khóa</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart & Summary Area -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="hl-glass-card p-5">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <h3 class="fw-extra-bold mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="text-blue-500"></i> Tăng trưởng người dùng
+                    </h3>
+                    <div class="hl-meta small">30 ngày gần nhất</div>
+                </div>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="hl-glass-card p-5 bg-primary bg-opacity-10 border-primary border-opacity-20 d-flex flex-column justify-content-center text-center h-100">
+                <div class="hl-star-container mb-3">
+                    <i data-lucide="sparkles" class="text-orange-500" size="48"></i>
+                </div>
+                <h4 class="fw-extra-bold mb-2">Tổng hợp hoạt động</h4>
+                <p class="hl-meta small px-3">Hệ thống đang vận hành ổn định với hiệu suất cao.</p>
+                <div class="d-flex flex-column gap-3 mt-4">
+                    <div class="d-flex justify-content-between align-items-center bg-white bg-opacity-40 p-3 rounded-pill text-start">
+                        <span class="hl-meta x-small fw-bold">Tin nhắn đã gửi</span>
+                        <span id="stat-totalMessages" class="fw-bold fs-5 text-gradient">--</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center bg-white bg-opacity-40 p-3 rounded-pill text-start">
+                        <span class="hl-meta x-small fw-bold">Ghép đôi thành công</span>
+                        <span id="stat-activeMatches" class="fw-bold fs-5 text-gradient">--</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -118,6 +157,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('stat-newUsers').textContent = stats.newUsersLast30Days || 0;
         document.getElementById('stat-totalMatches').textContent = stats.totalMatches || 0;
         document.getElementById('stat-bannedUsers').textContent = stats.bannedUsers || 0;
+        document.getElementById('stat-totalMessages').textContent = stats.totalMessages || 0;
+        document.getElementById('stat-activeMatches').textContent = stats.activeMatches || 0;
+
+        // Render Growth Chart
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        const chartData = stats.newUsersByDate || [];
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.map(d => new Date(d.registerDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })),
+                datasets: [{
+                    label: 'Người dùng mới',
+                    data: chartData.map(d => d.totalNewUsers),
+                    backgroundColor: 'rgba(255, 77, 109, 0.7)',
+                    borderColor: '#ff4d6d',
+                    borderWidth: 0,
+                    borderRadius: 8,
+                    barThickness: 12
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.03)' }, ticks: { font: { family: 'Outfit', size: 10 } } },
+                    x: { grid: { display: false }, ticks: { font: { family: 'Outfit', size: 10 } } }
+                }
+            }
+        });
 
         const profiles = stats.topLikedProfiles;
         if (profiles && profiles.length > 0) {
@@ -159,5 +228,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 .hover-row:hover { background: rgba(255,255,255,0.2); }
 .x-small { font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; }
 .group:hover i { transform: translateX(5px) !important; }
+
+@@keyframes starShimmer {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 5px orange); }
+    50% { transform: scale(1.2) rotate(10deg); opacity: 0.8; filter: drop-shadow(0 0 15px orange); }
+}
+.hl-star-shimmer { animation: starShimmer 3s infinite ease-in-out; }
+.hl-star-container { animation: float 6s infinite ease-in-out; }
 </style>
 }
