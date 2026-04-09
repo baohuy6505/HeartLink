@@ -7,10 +7,10 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 1. Add Services
 builder.Services.AddControllersWithViews();
 
-//builder.Services.AddDbContext<ApplicationDbContext>(options =>
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// 2. Configure MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(
@@ -20,8 +20,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<JwtService>();
 
+// 3. Configure JWT
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var secretKey = jwtSection["Key"] ?? throw new InvalidOperationException("Thiếu Jwt:Key trong appsettings.json");
+var secretKey = jwtSection["Key"] ?? throw new InvalidOperationException("Missing Jwt:Key in appsettings.json");
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -44,27 +45,30 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddCors(options => {
-    options.AddPolicy("AllowAll", builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    options.AddPolicy("AllowAll", b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
 var app = builder.Build();
 
+// 4. Middleware Pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
+// Quan trọng: Trên Render thường có Proxy ngược, đôi khi HTTPS Redirection gây lỗi vòng lặp
+// app.UseHttpsRedirection(); 
 
+app.UseStaticFiles();
 app.UseRouting();
+
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors("AllowAll");
-app.MapControllers();
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
