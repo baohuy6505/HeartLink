@@ -54,6 +54,10 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
     padding: 1rem 0;
 }
 
+.hl-navbar .nav-link.active {
+    color: var(--hl-primary) !important;
+}
+
 /* ── Buttons ───────────────────────────────────────────── */
 .btn-primary {
     background: var(--hl-primary-grad);

@@ -27,7 +27,7 @@ public class DashboardController : ControllerBase
         [FromQuery] DateTime? birthDateTo,
         [FromQuery] string? status,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 5)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 50);

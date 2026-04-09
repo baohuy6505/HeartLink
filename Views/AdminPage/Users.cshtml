@@ -97,7 +97,7 @@ async function loadUsers(page = 1) {
     const city    = document.getElementById('f-city').value.trim();
     const bdFrom  = document.getElementById('f-bdFrom').value;
 
-    let url = `/api/admin/dashboard/users?page=${page}&pageSize=15`;
+    let url = `/api/admin/dashboard/users?page=${page}&pageSize=5`;
     const urlParams = new URLSearchParams(window.location.search);
     const statusParam = urlParams.get('status');
 

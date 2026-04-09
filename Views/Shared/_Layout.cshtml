@@ -75,6 +75,15 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         if(window.lucide) lucide.createIcons();
+        
+        // Navigation highlighting
+        const path = window.location.pathname.toLowerCase();
+        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+            const href = link.getAttribute('href').toLowerCase();
+            if (path === href || (href !== '/' && path.startsWith(href))) {
+                link.classList.add('active');
+            }
+        });
     });
 </script>
 @RenderSection("Scripts", required: false)

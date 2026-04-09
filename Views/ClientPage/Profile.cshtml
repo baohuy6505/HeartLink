@@ -13,7 +13,8 @@
                 <div class="hl-blob" style="width:200px; height:200px; top:-50px; left:-50px;"></div>
                 
                 <div class="position-relative d-inline-block mb-4">
-                    <img id="pAvatar" class="hl-avatar-lg" src="https://ui-avatars.com/api/?name=?" />
+                    <img id="pAvatar" class="hl-avatar-lg cursor-pointer" src="https://ui-avatars.com/api/?name=?" title="Bấm để đổi ảnh đại diện" onclick="document.getElementById('avatarInput').click()" />
+                    <input type="file" id="avatarInput" hidden accept="image/*" onchange="handleAvatarUpload(this)" />
                     <div class="position-absolute bottom-0 end-0 bg-success border border-white p-2 rounded-circle" style="width:20px; height:20px; box-shadow:0 0 15px #198754;"></div>
                 </div>
                 
@@ -93,6 +94,10 @@
                 <label class="form-label x-small fw-bold hl-meta mb-2">Mật khẩu mới</label>
                 <input name="newPassword" type="password" class="form-control rounded-pill border-0 bg-light px-4" required />
             </div>
+            <div class="form-group">
+                <label class="form-label x-small fw-bold hl-meta mb-2">Xác nhận mật khẩu mới</label>
+                <input name="confirmNewPassword" type="password" class="form-control rounded-pill border-0 bg-light px-4" required />
+            </div>
             <div id="pwdMsg" class="alert small hl-glass-card border-danger text-danger mb-0" style="display:none;"></div>
             
             <div class="d-flex gap-2 mt-2">
@@ -128,6 +133,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) { HeartLink.showToast(err.message, 'danger'); }
 });
 
+async function handleAvatarUpload(input) {
+    if (!input.files || !input.files[0]) return;
+    
+    const file = input.files[0];
+    try {
+        HeartLink.showToast('Đang tải ảnh lên...', 'info');
+        const { url } = await HeartLink.uploadAvatar(file);
+        
+        // Update profile in DB
+        const profile = await HeartLink.apiFetch('/api/client/profile/me');
+        profile.avatar = url;
+        
+        // Using existing UpdateProfile API
+        // We need to send all required fields or the API might fail if it's strict
+        // Let's call the update endpoint
+        await HeartLink.apiFetch('/api/client/profile/update', {
+            method: 'PUT',
+            body: { 
+                fullName: profile.fullName,
+                gender: profile.gender,
+                birthDate: profile.birthDate,
+                avatar: url,
+                bio: profile.bio,
+                location: profile.location,
+                interests: profile.interests,
+                targetGender: profile.targetGender,
+                minAge: profile.minAge,
+                maxAge: profile.maxAge,
+                radius: profile.radius,
+                latitude: profile.latitude,
+                longitude: profile.longitude
+            }
+        });
+
+        document.getElementById('pAvatar').src = HeartLink.avatarUrl(url, 'lg');
+        HeartLink.showToast('Đã cập nhật ảnh đại diện! ✨', 'success');
+        
+        // Refresh navbar if needed (though navbar usually uses email/name)
+    } catch (err) {
+        HeartLink.showToast(err.message, 'danger');
+    } finally {
+        input.value = '';
+    }
+}
+
 function openPwdModal() { document.getElementById('pwdModal').style.display = 'flex'; }
 function closePwdModal() { document.getElementById('pwdModal').style.display = 'none'; }
 
@@ -144,7 +194,11 @@ document.getElementById('pwdForm').addEventListener('submit', async (e) => {
     try {
         await HeartLink.apiFetch('/api/client/auth/change-password', {
             method: 'POST',
-            body: { oldPassword: f.oldPassword.value, newPassword: f.newPassword.value }
+            body: { 
+                oldPassword: f.oldPassword.value, 
+                newPassword: f.newPassword.value,
+                confirmNewPassword: f.confirmNewPassword.value
+            }
         });
         HeartLink.showToast('Đã đổi mật khẩu thành công! 🔑', 'success');
         closePwdModal();
