@@ -4,7 +4,7 @@ namespace HeartLink.Models.ProfileDtos;
 
 public class SetFilterRequest
 {
-    [Required, RegularExpression("Nam|Nữ|Khác|Tất cả")]
+    [MaxLength(10)]
     public string TargetGender { get; set; } = "Tất cả";
 
     [Range(18, 99)]

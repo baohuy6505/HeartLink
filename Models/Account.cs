@@ -22,6 +22,9 @@ public class Account
 
     public bool Status { get; set; } = true;
 
+    [MaxLength(500)]
+    public string? BanReason { get; set; }
+
     [Required, MaxLength(20)]
     public string UserRole { get; set; } = "User";
 

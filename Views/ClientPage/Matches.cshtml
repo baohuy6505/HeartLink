@@ -1,61 +1,94 @@
 @{
     ViewData["Title"] = "Danh sách ghép đôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1 class="hl-page-title">Danh sách ghép đôi</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="hl-page-title mb-1">💞 Ghép đôi</h1>
+        <div class="hl-subtitle mb-0">Những người đã cùng thích bạn</div>
+    </div>
+</div>
 
 <div id="matchesMessage" class="alert" style="display:none;"></div>
-<div id="matchesContainer"></div>
+<div id="matchesContainer">
+    <div class="hl-loading"><div class="hl-spinner"></div><div>Đang tải danh sách...</div></div>
+</div>
 
 @section Scripts {
 <script>
 async function loadMatches() {
     try {
-        const matches = await HeartLink.apiFetch("/api/client/matches");
+        const matches = await HeartLink.apiFetch('/api/client/matches');
 
         if (!matches.length) {
-            HeartLink.setHtml("matchesContainer", `<div class="hl-empty">Bạn chưa có match nào.</div>`);
+            document.getElementById('matchesContainer').innerHTML = HeartLink.emptyHtml(
+                '💞', 'Chưa có ghép đôi nào',
+                'Hãy khám phá và thích hồ sơ phù hợp để bắt đầu kết nối!'
+            ) + `<div class="text-center mt-3">
+                <a href="/discovery" class="btn btn-primary">🔥 Khám phá ngay</a>
+            </div>`;
             return;
         }
 
-        const html = matches.map(m => `
-            <div class="card hl-card p-3 mb-3">
-                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                    <div>
-                        <h5 class="mb-1">${m.otherUserName || "Người dùng"}</h5>
-                        <div class="hl-meta">Ghép đôi lúc: ${HeartLink.formatDateTime(m.matchedDate)}</div>
-                        <div class="hl-meta">Tin nhắn cuối: ${m.lastMessage || "Chưa có tin nhắn"}</div>
-                        <div class="hl-meta">Chưa đọc: ${m.unreadCount}</div>
-                    </div>
-                    <div class="hl-actions">
-                        <a class="btn btn-primary" href="/messages/${m.matchID}">Nhắn tin</a>
-                        <button class="btn btn-outline-danger" onclick="cancelMatch(${m.matchID})">Hủy match</button>
+        const auth = HeartLink.getAuth();
+        const html = `<div class="hl-match-grid">` + matches.map(m => {
+            const avatarUrl = m.otherUserAvatar && m.otherUserAvatar.trim()
+                ? HeartLink.escapeHtml(m.otherUserAvatar)
+                : HeartLink.namedAvatar(m.otherUserName, 'md');
+            const hasUnread = m.unreadCount > 0;
+            const preview = m.lastMessage
+                ? HeartLink.escapeHtml(m.lastMessage.substring(0, 50)) + (m.lastMessage.length > 50 ? '...' : '')
+                : '<span class="hl-meta">Chưa có tin nhắn</span>';
+
+            return `
+            <div class="card hl-card hl-match-card" onclick="window.location.href='/messages/${m.matchID}'">
+                <div class="hl-match-card-top">
+                    <img class="hl-avatar-md"
+                         src="${avatarUrl}"
+                         onerror="this.src='${HeartLink.namedAvatar(m.otherUserName)}'"
+                         alt="${HeartLink.escapeHtml(m.otherUserName || 'User')}" />
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="hl-match-name">${HeartLink.escapeHtml(m.otherUserName || 'Người dùng')}</div>
+                            ${hasUnread ? `<span class="hl-unread-badge">${m.unreadCount}</span>` : ''}
+                        </div>
+                        <div class="hl-match-preview">${preview}</div>
                     </div>
                 </div>
-            </div>
-        `).join("");
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="hl-meta" style="font-size:0.8rem;">
+                        ${m.lastMessageTime ? HeartLink.formatTimeShort(m.lastMessageTime) : HeartLink.formatDate(m.matchedDate)}
+                    </span>
+                    <div class="hl-actions">
+                        <a class="btn btn-primary btn-sm" href="/messages/${m.matchID}"
+                           onclick="event.stopPropagation()">💬 Nhắn tin</a>
+                        <button class="btn btn-outline-danger btn-sm"
+                                onclick="event.stopPropagation(); cancelMatch(${m.matchID})">Hủy</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('') + `</div>`;
 
-        HeartLink.setHtml("matchesContainer", html);
+        document.getElementById('matchesContainer').innerHTML = html;
     } catch (error) {
-        HeartLink.showMessage("matchesMessage", error.message, "danger");
+        HeartLink.showMessage('matchesMessage', error.message, 'danger');
+        document.getElementById('matchesContainer').innerHTML = '';
     }
 }
 
 async function cancelMatch(matchId) {
-    if (!confirm("Bạn chắc chắn muốn hủy kết nối?")) return;
-
+    if (!confirm('Bạn chắc chắn muốn hủy kết nối này?')) return;
     try {
-        const result = await HeartLink.apiFetch(`/api/client/matches/${matchId}/cancel`, {
-            method: "POST"
-        });
-        HeartLink.showMessage("matchesMessage", result.message || "Đã hủy match.", "success");
+        await HeartLink.apiFetch(`/api/client/matches/${matchId}/cancel`, { method: 'POST' });
+        HeartLink.showToast('Đã hủy kết nối.', 'info');
         loadMatches();
     } catch (error) {
-        HeartLink.showMessage("matchesMessage", error.message, "danger");
+        HeartLink.showToast(error.message, 'danger');
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
     if (!HeartLink.requireAuth()) return;
     loadMatches();
 });

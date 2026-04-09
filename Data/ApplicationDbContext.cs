@@ -22,12 +22,11 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Account>(entity =>
         {
+            entity.ToTable("ACCOUNT", t => t.UseSqlOutputClause(false));
             entity.HasIndex(x => x.Email).IsUnique();
-
             entity.HasIndex(x => x.PhoneNumber)
                   .IsUnique()
                   .HasFilter("[PhoneNumber] IS NOT NULL");
-
             entity.Property(x => x.CreatedDate).HasDefaultValueSql("GETDATE()");
             entity.Property(x => x.Status).HasDefaultValue(true);
             entity.Property(x => x.UserRole).HasDefaultValue("User");
@@ -35,6 +34,7 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Profile>(entity =>
         {
+            entity.ToTable("PROFILE", t => t.UseSqlOutputClause(false));
             entity.HasIndex(x => x.AccountID).IsUnique();
             entity.Property(x => x.CreatedDate).HasDefaultValueSql("GETDATE()");
             entity.Property(x => x.MinAge).HasDefaultValue(18);
@@ -49,6 +49,7 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<ProfileInterest>(entity =>
         {
+            entity.ToTable("PROFILE_INTERESTS", t => t.UseSqlOutputClause(false));
             entity.HasKey(x => new { x.ProfileID, x.InterestName });
 
             entity.HasOne(x => x.Profile)
@@ -59,6 +60,7 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Like>(entity =>
         {
+            entity.ToTable("LIKES", t => t.UseSqlOutputClause(false));
             entity.HasIndex(x => new { x.SenderID, x.ReceiverID }).IsUnique();
             entity.Property(x => x.Timestamp).HasDefaultValueSql("GETDATE()");
 
@@ -75,6 +77,7 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Match>(entity =>
         {
+            entity.ToTable("MATCHES", t => t.UseSqlOutputClause(false));
             entity.Property(x => x.MatchedDate).HasDefaultValueSql("GETDATE()");
             entity.Property(x => x.Status).HasDefaultValue((byte)1);
 
@@ -89,7 +92,7 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(x => x.Like)
                 .WithMany()
                 .HasForeignKey(x => x.LikeID)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(x => x.User1)
                 .WithMany(x => x.MatchesAsUser1)
@@ -104,6 +107,7 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Message>(entity =>
         {
+            entity.ToTable("MESSAGE", t => t.UseSqlOutputClause(false));
             entity.Property(x => x.SentTime).HasDefaultValueSql("GETDATE()");
             entity.Property(x => x.IsRead).HasDefaultValue(false);
 

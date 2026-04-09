@@ -1,57 +1,76 @@
 @{
     ViewData["Title"] = "Đăng ký";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container py-4">
-    <div class="card hl-card p-4 hl-form-card">
-        <h1 class="hl-page-title text-center">Tạo tài khoản HeartLink</h1>
-        <p class="hl-subtitle text-center">Bắt đầu hành trình kết nối của bạn</p>
+<div class="container py-3">
+    <div class="card hl-card p-4 p-md-5 hl-form-card">
+        <div class="text-center mb-4">
+            <span style="font-size:2.8rem;">💗</span>
+            <h1 class="hl-page-title mt-2 mb-1">Tạo tài khoản HeartLink</h1>
+            <p class="hl-subtitle">Bắt đầu hành trình kết nối của bạn ngay hôm nay</p>
+        </div>
 
         <div id="registerMessage" class="alert" style="display:none;"></div>
 
-        <form id="registerForm" class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">Email</label>
-                <input id="email" type="email" class="form-control" required />
+        <form id="registerForm" class="row g-3" novalidate>
+
+            <!-- ── Tài khoản ── -->
+            <div class="col-12">
+                <div class="hl-section-title">🔐 Thông tin tài khoản</div>
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Số điện thoại</label>
-                <input id="phoneNumber" class="form-control" />
+                <label class="form-label" for="reg-email">Email <span class="text-danger">*</span></label>
+                <input id="reg-email" type="email" class="form-control" placeholder="example@email.com"
+                       autocomplete="email" required />
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Mật khẩu</label>
-                <input id="password" type="password" class="form-control" required />
+                <label class="form-label" for="reg-phone">Số điện thoại</label>
+                <input id="reg-phone" type="tel" class="form-control" placeholder="0912 345 678" />
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Xác nhận mật khẩu</label>
-                <input id="confirmPassword" type="password" class="form-control" required />
+                <label class="form-label" for="reg-pw">Mật khẩu <span class="text-danger">*</span></label>
+                <input id="reg-pw" type="password" class="form-control" placeholder="Tối thiểu 6 ký tự"
+                       autocomplete="new-password" required />
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Họ tên</label>
-                <input id="fullName" class="form-control" required />
+                <label class="form-label" for="reg-cpw">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                <input id="reg-cpw" type="password" class="form-control" placeholder="Nhập lại mật khẩu"
+                       autocomplete="new-password" required />
+            </div>
+
+            <!-- ── Hồ sơ cá nhân ── -->
+            <div class="col-12 mt-2">
+                <div class="hl-section-title">👤 Thông tin cá nhân</div>
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Ngày sinh</label>
-                <input id="birthDate" type="date" class="form-control" required />
+                <label class="form-label" for="reg-name">Họ và tên <span class="text-danger">*</span></label>
+                <input id="reg-name" type="text" class="form-control" placeholder="Nguyễn Văn A"
+                       autocomplete="name" required />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label" for="reg-birth">Ngày sinh <span class="text-danger">*</span></label>
+                <input id="reg-birth" type="date" class="form-control" required />
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Giới tính</label>
-                <select id="gender" class="form-select" required>
-                    <option value="Nam">Nam</option>
-                    <option value="Nữ">Nữ</option>
+                <label class="form-label">Giới tính <span class="text-danger">*</span></label>
+                <select id="reg-gender" class="form-select" required>
+                    <option value="Nam">Nam 👨</option>
+                    <option value="Nữ">Nữ 👩</option>
                     <option value="Khác">Khác</option>
                 </select>
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Muốn tìm</label>
-                <select id="targetGender" class="form-select">
+                <select id="reg-target" class="form-select">
                     <option value="Tất cả">Tất cả</option>
                     <option value="Nam">Nam</option>
                     <option value="Nữ">Nữ</option>
@@ -60,99 +79,120 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Khoảng cách (km)</label>
-                <input id="radius" type="number" class="form-control" value="50" min="1" max="500" />
+                <label class="form-label">Thành phố</label>
+                <input id="reg-location" type="text" class="form-control" placeholder="TP. Hồ Chí Minh" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label" for="reg-bio">Giới thiệu bản thân</label>
+                <textarea id="reg-bio" class="form-control"
+                          placeholder="Viết một vài dòng thú vị về bạn..."></textarea>
             </div>
 
             <div class="col-md-6">
+                <label class="form-label" for="reg-avatar">URL ảnh đại diện</label>
+                <input id="reg-avatar" type="url" class="form-control"
+                       placeholder="https://..." />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label" for="reg-interests">Sở thích (cách nhau bởi dấu phẩy)</label>
+                <input id="reg-interests" type="text" class="form-control"
+                       placeholder="Du lịch, Cà phê, Đọc sách..." />
+            </div>
+
+            <!-- ── Bộ lọc ── -->
+            <div class="col-12 mt-2">
+                <div class="hl-section-title">⚙️ Bộ lọc ban đầu</div>
+            </div>
+
+            <div class="col-md-4">
                 <label class="form-label">Tuổi tối thiểu</label>
-                <input id="minAge" type="number" class="form-control" value="18" min="18" max="99" />
+                <input id="reg-minage" type="number" class="form-control" value="18" min="18" max="99" />
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label">Tuổi tối đa</label>
-                <input id="maxAge" type="number" class="form-control" value="99" min="18" max="99" />
+                <input id="reg-maxage" type="number" class="form-control" value="45" min="18" max="99" />
             </div>
 
-            <div class="col-12">
-                <label class="form-label">Bio</label>
-                <textarea id="bio" class="form-control" rows="3" placeholder="Viết một vài dòng giới thiệu về bạn..."></textarea>
+            <div class="col-md-4">
+                <label class="form-label">Khoảng cách (km)</label>
+                <input id="reg-radius" type="number" class="form-control" value="50" min="1" max="500" />
             </div>
 
-            <div class="col-md-6">
-                <label class="form-label">Địa điểm</label>
-                <input id="location" class="form-control" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Avatar URL</label>
-                <input id="avatar" class="form-control" />
-            </div>
-
-            <div class="col-12">
-                <label class="form-label">Sở thích (cách nhau bởi dấu phẩy)</label>
-                <input id="interests" class="form-control" placeholder="Đọc sách, Du lịch, Cà phê..." />
-            </div>
-
-            <div class="col-12 d-grid">
-                <button class="btn btn-success" type="submit">Tạo tài khoản</button>
+            <!-- ── Submit ── -->
+            <div class="col-12 d-grid mt-2">
+                <button class="btn btn-primary py-3" type="submit" id="regBtn">
+                    Tạo tài khoản 🚀
+                </button>
             </div>
         </form>
 
         <div class="text-center mt-4">
-            Đã có tài khoản?
-            <a href="/login" class="fw-semibold">Đăng nhập</a>
+            <span class="text-muted">Đã có tài khoản?</span>
+            <a href="/login" class="fw-bold ms-1" style="color: var(--hl-primary);">Đăng nhập →</a>
         </div>
     </div>
 </div>
 
 @section Scripts {
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        HeartLink.clearMessage("registerMessage");
+        HeartLink.clearMessage('registerMessage');
 
-        const minAge = parseInt(document.getElementById("minAge").value);
-        const maxAge = parseInt(document.getElementById("maxAge").value);
-
-        if (minAge > maxAge) {
-            HeartLink.showMessage("registerMessage", "MinAge không được lớn hơn MaxAge.", "danger");
+        const pw  = document.getElementById('reg-pw').value;
+        const cpw = document.getElementById('reg-cpw').value;
+        if (pw !== cpw) {
+            HeartLink.showMessage('registerMessage', 'Mật khẩu xác nhận không khớp.', 'danger');
             return;
         }
 
-        const interests = document.getElementById("interests").value
-            .split(",")
-            .map(x => x.trim())
-            .filter(x => x.length > 0);
+        const minAge = parseInt(document.getElementById('reg-minage').value);
+        const maxAge = parseInt(document.getElementById('reg-maxage').value);
+        if (minAge > maxAge) {
+            HeartLink.showMessage('registerMessage', 'Tuổi tối thiểu không được lớn hơn tuổi tối đa.', 'danger');
+            return;
+        }
+
+        const interests = document.getElementById('reg-interests').value
+            .split(',').map(x => x.trim()).filter(x => x.length > 0);
+
+        const btn = document.getElementById('regBtn');
+        btn.disabled  = true;
+        btn.textContent = 'Đang tạo tài khoản...';
 
         try {
-            const result = await HeartLink.apiFetch("/api/client/auth/register", {
-                method: "POST",
+            const result = await HeartLink.apiFetch('/api/client/auth/register', {
+                method: 'POST',
                 auth: false,
                 body: {
-                    email: document.getElementById("email").value.trim(),
-                    password: document.getElementById("password").value,
-                    confirmPassword: document.getElementById("confirmPassword").value,
-                    phoneNumber: document.getElementById("phoneNumber").value.trim() || null,
-                    fullName: document.getElementById("fullName").value.trim(),
-                    birthDate: document.getElementById("birthDate").value,
-                    gender: document.getElementById("gender").value,
-                    bio: document.getElementById("bio").value.trim() || null,
-                    location: document.getElementById("location").value.trim() || null,
-                    avatar: document.getElementById("avatar").value.trim() || null,
-                    targetGender: document.getElementById("targetGender").value,
-                    minAge: minAge,
-                    maxAge: maxAge,
-                    radius: parseFloat(document.getElementById("radius").value),
-                    interests: interests
+                    email:           document.getElementById('reg-email').value.trim(),
+                    password:        pw,
+                    confirmPassword: cpw,
+                    phoneNumber:     document.getElementById('reg-phone').value.trim() || null,
+                    fullName:        document.getElementById('reg-name').value.trim(),
+                    birthDate:       document.getElementById('reg-birth').value,
+                    gender:          document.getElementById('reg-gender').value,
+                    bio:             document.getElementById('reg-bio').value.trim() || null,
+                    location:        document.getElementById('reg-location').value.trim() || null,
+                    avatar:          document.getElementById('reg-avatar').value.trim() || null,
+                    targetGender:    document.getElementById('reg-target').value,
+                    minAge, maxAge,
+                    radius:          parseFloat(document.getElementById('reg-radius').value),
+                    interests
                 }
             });
 
-            HeartLink.showMessage("registerMessage", result.message || "Đăng ký thành công. Vui lòng đăng nhập.", "success");
-            setTimeout(() => window.location.href = "/login", 1200);
+            HeartLink.showToast('Đăng ký thành công! Đang chuyển hướng...', 'success');
+            setTimeout(() => window.location.href = '/login', 1400);
         } catch (error) {
-            HeartLink.showMessage("registerMessage", error.message, "danger");
+            HeartLink.showMessage('registerMessage', error.message, 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Tạo tài khoản 🚀';
         }
     });
 });

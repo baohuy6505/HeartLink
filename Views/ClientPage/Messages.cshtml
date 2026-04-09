@@ -1,80 +1,159 @@
 @{
-    ViewData["Title"] = "Tin nhắn";
+    ViewData["Title"] = "Nhắn tin";
+    Layout = "~/Views/Shared/_Layout.cshtml";
     var matchId = (int)ViewBag.MatchId;
 }
 
-<h1 class="hl-page-title">Nhắn tin</h1>
+<div class="card hl-card p-0 overflow-hidden hl-chat-wrap" style="height: calc(100vh - 140px);">
 
-<div id="messagePageAlert" class="alert" style="display:none;"></div>
+    <!-- Chat Header -->
+    <div class="hl-chat-header" id="chatHeader">
+        <a href="/matches" class="btn btn-outline-secondary btn-sm me-1">←</a>
+        <div id="chatHeaderAvatar"></div>
+        <div>
+            <div class="chat-name" id="chatPartnerName">Đang tải...</div>
+            <div class="chat-status">Đang hoạt động</div>
+        </div>
+    </div>
 
-<div class="card hl-card p-4">
-    <div id="chatBox" class="hl-chat-box mb-3"></div>
+    <!-- Messages -->
+    <div class="hl-chat-box" id="chatBox">
+        <div class="hl-loading"><div class="hl-spinner"></div></div>
+    </div>
 
-    <form id="sendMessageForm" class="d-flex gap-2">
-        <input id="messageContent" class="form-control" placeholder="Nhập tin nhắn..." />
-        <button class="btn btn-primary" type="submit">Gửi</button>
-    </form>
+    <!-- Input -->
+    <div class="hl-chat-footer">
+        <div id="chatAlert" class="alert mb-2" style="display:none;"></div>
+        <form id="sendMsgForm" class="hl-chat-input-row">
+            <input id="msgInput" class="form-control hl-chat-input"
+                   placeholder="Nhập tin nhắn..." autocomplete="off" required />
+            <button class="btn btn-primary hl-chat-send" type="submit">✈</button>
+        </form>
+    </div>
 </div>
 
 @section Scripts {
 <script>
 const matchId = @matchId;
+let auth = null;
+let matchInfo = null;
+let polling = null;
+
+async function loadMatchInfo() {
+    try {
+        const matches = await HeartLink.apiFetch('/api/client/matches');
+        matchInfo = matches.find(m => m.matchID === matchId);
+        if (matchInfo) {
+            document.getElementById('chatPartnerName').textContent =
+                matchInfo.otherUserName || 'Người dùng';
+
+            const avatarUrl = matchInfo.otherUserAvatar && matchInfo.otherUserAvatar.trim()
+                ? HeartLink.escapeHtml(matchInfo.otherUserAvatar)
+                : HeartLink.namedAvatar(matchInfo.otherUserName, 'sm');
+
+            document.getElementById('chatHeaderAvatar').innerHTML = `
+                <img class="hl-avatar-sm" src="${avatarUrl}"
+                     onerror="this.src='${HeartLink.namedAvatar(matchInfo.otherUserName)}'"
+                     alt="avatar" />`;
+        }
+    } catch { /* skip */ }
+}
 
 async function loadMessages() {
     try {
         const messages = await HeartLink.apiFetch(`/api/client/messages/${matchId}`);
-        const auth = HeartLink.getAuth();
+        const chatBox   = document.getElementById('chatBox');
+        const wasAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 60;
 
-        const html = messages.map(m => `
-            <div class="hl-message ${m.senderID === auth.accountId ? 'mine' : 'theirs'}">
-                <div>${m.content}</div>
-                <div class="small text-muted mt-1">${HeartLink.formatDateTime(m.sentTime)}</div>
-            </div>
-        `).join("");
-
-        HeartLink.setHtml("chatBox", html || `<div class="text-muted">Chưa có tin nhắn nào.</div>`);
-
-        const chatBox = document.getElementById("chatBox");
-        chatBox.scrollTop = chatBox.scrollHeight;
-    } catch (error) {
-        HeartLink.showMessage("messagePageAlert", error.message, "danger");
-    }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    if (!HeartLink.requireAuth()) return;
-
-    loadMessages();
-
-    document.getElementById("sendMessageForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const input = document.getElementById("messageContent");
-        const content = input.value.trim();
-
-        if (!content) {
-            HeartLink.showMessage("messagePageAlert", "Nội dung tin nhắn không được rỗng.", "danger");
+        if (!messages.length) {
+            chatBox.innerHTML = HeartLink.emptyHtml('💬', 'Hãy bắt đầu cuộc trò chuyện!', '');
             return;
         }
 
-        try {
-            await HeartLink.apiFetch("/api/client/messages/send", {
-                method: "POST",
-                body: {
-                    matchID: matchId,
-                    content: content
-                }
-            });
+        chatBox.innerHTML = messages.map(m => {
+            const isMine = m.senderID === auth.accountId;
+            const time   = HeartLink.formatTimeShort(m.sentTime);
+            const readHtml = isMine
+                ? `<span class="hl-read-indicator ${m.isRead ? 'seen' : 'sent'}">${m.isRead ? '✓✓' : '✓'}</span>`
+                : '';
 
-            input.value = "";
-            HeartLink.clearMessage("messagePageAlert");
+            return `
+            <div class="hl-msg-row ${isMine ? 'mine' : 'theirs'}">
+                ${!isMine && matchInfo ? `
+                <img class="hl-avatar-sm"
+                     src="${matchInfo.otherUserAvatar ? HeartLink.escapeHtml(matchInfo.otherUserAvatar) : HeartLink.namedAvatar(matchInfo.otherUserName, 'sm')}"
+                     alt="av" style="width:32px;height:32px;border-radius:50%;"/>` : ''}
+                <div>
+                    <div class="hl-message ${isMine ? 'mine' : 'theirs'}">${HeartLink.escapeHtml(m.content)}</div>
+                    <div class="hl-msg-time">
+                        <span>${time}</span>
+                        ${readHtml}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        if (wasAtBottom) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Mark as read
+        await HeartLink.apiFetch(`/api/client/messages/${matchId}/read`, { method: 'POST' }).catch(() => {});
+    } catch (err) {
+        HeartLink.showMessage('chatAlert', err.message, 'danger');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    auth = HeartLink.requireAuth();
+    if (!auth) return;
+
+    await loadMatchInfo();
+    await loadMessages();
+
+    // Auto-scroll on load
+    const chatBox = document.getElementById('chatBox');
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Send message
+    document.getElementById('sendMsgForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input   = document.getElementById('msgInput');
+        const content = input.value.trim();
+        if (!content) return;
+
+        input.value   = '';
+        input.disabled = true;
+
+        try {
+            await HeartLink.apiFetch('/api/client/messages/send', {
+                method: 'POST',
+                body: { matchID: matchId, content }
+            });
+            HeartLink.clearMessage('chatAlert');
             await loadMessages();
-        } catch (error) {
-            HeartLink.showMessage("messagePageAlert", error.message, "danger");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        } catch (err) {
+            HeartLink.showMessage('chatAlert', err.message, 'danger');
+            input.value = content; // restore
+        } finally {
+            input.disabled = false;
+            input.focus();
         }
     });
 
-    setInterval(loadMessages, 5000);
+    // Enter to send
+    document.getElementById('msgInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('sendMsgForm').requestSubmit();
+        }
+    });
+
+    // Poll every 4 seconds
+    polling = setInterval(loadMessages, 4000);
 });
+
+window.addEventListener('beforeunload', () => { if (polling) clearInterval(polling); });
 </script>
 }

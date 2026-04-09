@@ -1,0 +1,202 @@
+@{
+    ViewData["Title"] = "Chỉnh sửa hồ sơ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-2">
+    <div class="card hl-card p-4 p-md-5 hl-form-card">
+        <h1 class="hl-page-title mb-1">✏️ Chỉnh sửa hồ sơ</h1>
+        <p class="hl-subtitle">Cập nhật thông tin cá nhân của bạn</p>
+
+        <div id="editMessage" class="alert" style="display:none;"></div>
+
+        <form id="editProfileForm" class="row g-3" novalidate>
+
+            <div class="col-12">
+                <div class="hl-section-title">👤 Thông tin cơ bản</div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                <input id="ep-name" type="text" class="form-control" required />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Ngày sinh <span class="text-danger">*</span></label>
+                <input id="ep-birth" type="date" class="form-control" required />
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Giới tính <span class="text-danger">*</span></label>
+                <select id="ep-gender" class="form-select" required>
+                    <option value="Nam">Nam 👨</option>
+                    <option value="Nữ">Nữ 👩</option>
+                    <option value="Khác">Khác</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Tìm kiếm</label>
+                <select id="ep-target" class="form-select">
+                    <option value="Tất cả">Tất cả</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                    <option value="Khác">Khác</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Thành phố</label>
+                <input id="ep-location" type="text" class="form-control" placeholder="TP. Hồ Chí Minh" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Bio</label>
+                <textarea id="ep-bio" class="form-control"
+                          placeholder="Giới thiệu bản thân..."></textarea>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">URL ảnh đại diện</label>
+                <input id="ep-avatar" type="url" class="form-control" placeholder="https://..." />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Sở thích (phân cách bởi dấu phẩy)</label>
+                <input id="ep-interests" type="text" class="form-control"
+                       placeholder="Du lịch, Cà phê..." />
+            </div>
+
+            <div class="col-12">
+                <div class="hl-section-title mt-2">⚙️ Bộ lọc tìm kiếm</div>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Tuổi tối thiểu</label>
+                <input id="ep-minage" type="number" class="form-control" min="18" max="99" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Tuổi tối đa</label>
+                <input id="ep-maxage" type="number" class="form-control" min="18" max="99" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Khoảng cách (km)</label>
+                <input id="ep-radius" type="number" class="form-control" min="1" max="500" />
+            </div>
+
+            <!-- GPS Location update -->
+            <div class="col-12">
+                <div class="hl-section-title mt-2">📍 Vị trí GPS</div>
+                <div class="hl-meta mb-2">Dùng GPS để tìm người gần bạn hơn</div>
+                <div id="locationStatus" class="hl-meta mb-2"></div>
+                <button type="button" id="btnUpdateLocation" class="btn btn-outline-secondary">
+                    📍 Cập nhật vị trí GPS
+                </button>
+            </div>
+
+            <div class="col-12 d-grid mt-3">
+                <button class="btn btn-primary py-3" type="submit" id="saveBtn">
+                    💾 Lưu thay đổi
+                </button>
+            </div>
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="/profile" class="btn btn-outline-secondary">← Quay lại hồ sơ</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!HeartLink.requireAuth()) return;
+
+    // Load existing profile
+    try {
+        const d = await HeartLink.apiFetch('/api/client/profile/me');
+        document.getElementById('ep-name').value      = d.fullName    || '';
+        document.getElementById('ep-birth').value     = d.birthDate   ? d.birthDate.split('T')[0] : '';
+        document.getElementById('ep-gender').value    = d.gender      || 'Nam';
+        document.getElementById('ep-target').value    = d.targetGender || 'Tất cả';
+        document.getElementById('ep-location').value  = d.location    || '';
+        document.getElementById('ep-bio').value       = d.bio         || '';
+        document.getElementById('ep-avatar').value    = d.avatar      || '';
+        document.getElementById('ep-interests').value = (d.interests || []).join(', ');
+        document.getElementById('ep-minage').value    = d.minAge      || 18;
+        document.getElementById('ep-maxage').value    = d.maxAge      || 99;
+        document.getElementById('ep-radius').value    = d.radius      || 50;
+
+        if (d.latitude) {
+            document.getElementById('locationStatus').textContent =
+                `📍 Vị trí hiện tại: ${d.latitude.toFixed(5)}, ${d.longitude.toFixed(5)}`;
+        }
+    } catch (err) {
+        HeartLink.showMessage('editMessage', err.message, 'danger');
+    }
+
+    // GPS update button
+    document.getElementById('btnUpdateLocation').addEventListener('click', async () => {
+        const btn = document.getElementById('btnUpdateLocation');
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang lấy vị trí...';
+        try {
+            const result = await HeartLink.updateLocation();
+            document.getElementById('locationStatus').textContent =
+                `📍 Đã cập nhật: ${result.latitude.toFixed(5)}, ${result.longitude.toFixed(5)}`;
+        } catch {
+            // error already shown as toast
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '📍 Cập nhật vị trí GPS';
+        }
+    });
+
+    // Save profile
+    document.getElementById('editProfileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        HeartLink.clearMessage('editMessage');
+
+        const minAge = parseInt(document.getElementById('ep-minage').value);
+        const maxAge = parseInt(document.getElementById('ep-maxage').value);
+        if (minAge > maxAge) {
+            HeartLink.showMessage('editMessage', 'Tuổi tối thiểu không được lớn hơn tuổi tối đa.', 'danger');
+            return;
+        }
+
+        const interests = document.getElementById('ep-interests').value
+            .split(',').map(x => x.trim()).filter(x => x.length > 0);
+
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        btn.textContent = 'Đang lưu...';
+
+        try {
+            const result = await HeartLink.apiFetch('/api/client/profile/update', {
+                method: 'PUT',
+                body: {
+                    fullName:     document.getElementById('ep-name').value.trim(),
+                    birthDate:    document.getElementById('ep-birth').value,
+                    gender:       document.getElementById('ep-gender').value,
+                    targetGender: document.getElementById('ep-target').value,
+                    bio:          document.getElementById('ep-bio').value.trim() || null,
+                    location:     document.getElementById('ep-location').value.trim() || null,
+                    avatar:       document.getElementById('ep-avatar').value.trim() || null,
+                    minAge, maxAge,
+                    radius:       parseFloat(document.getElementById('ep-radius').value),
+                    interests
+                }
+            });
+
+            HeartLink.showToast(result.message || 'Cập nhật hồ sơ thành công!', 'success');
+            setTimeout(() => window.location.href = '/profile', 1200);
+        } catch (err) {
+            HeartLink.showMessage('editMessage', err.message, 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '💾 Lưu thay đổi';
+        }
+    });
+});
+</script>
+}

@@ -39,6 +39,10 @@ public class Profile
 
     public double Radius { get; set; } = 50;
 
+    public double? Latitude { get; set; }
+
+    public double? Longitude { get; set; }
+
     public DateTime CreatedDate { get; set; } = DateTime.Now;
 
     public Account Account { get; set; } = null!;

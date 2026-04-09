@@ -1,17 +1,35 @@
 @{
     ViewData["Title"] = "Khám phá";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h1 class="hl-page-title mb-0">Khám phá</h1>
-        <div class="hl-subtitle mb-0">Chọn hồ sơ phù hợp và bắt đầu kết nối</div>
+<div class="hl-discovery-wrap">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="hl-page-title mb-1">🔥 Khám phá</h1>
+            <div class="hl-subtitle mb-0">Vuốt để thích hoặc bỏ qua hồ sơ</div>
+        </div>
+        <a class="btn btn-outline-secondary" href="/profile/filter">
+            ⚙️ Bộ lọc
+        </a>
     </div>
-    <a class="btn btn-outline-secondary" href="/profile/filter">Bộ lọc</a>
+
+    <div id="discoveryMessage" class="alert" style="display:none;"></div>
+    <div id="candidateContainer"></div>
 </div>
 
-<div id="discoveryMessage" class="alert" style="display:none;"></div>
-<div id="candidateContainer"></div>
+<!-- Match Popup (hidden by default) -->
+<div id="matchPopup" class="hl-match-popup" style="display:none;" onclick="closeMatchPopup()">
+    <div class="hl-match-popup-inner" onclick="event.stopPropagation()">
+        <div style="font-size:4rem; margin-bottom:12px;">💞</div>
+        <h2>Kết đôi thành công!</h2>
+        <p id="matchPopupText">Bạn và người kia đã thích nhau!</p>
+        <div class="d-flex gap-3 justify-content-center mt-2">
+            <button class="btn btn-light px-4" onclick="closeMatchPopup()">Tiếp tục</button>
+            <a id="matchPopupChatBtn" class="btn btn-warning px-4" href="/matches">Nhắn tin ngay</a>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
 <script>
@@ -19,84 +37,125 @@ let candidates = [];
 let currentIndex = 0;
 
 async function loadCandidates() {
-    HeartLink.clearMessage("discoveryMessage");
+    const container = document.getElementById('candidateContainer');
+    container.innerHTML = HeartLink.loadingHtml();
 
     try {
-        candidates = await HeartLink.apiFetch("/api/client/discovery/candidates?take=10");
+        candidates = await HeartLink.apiFetch('/api/client/discovery/candidates?take=10');
         currentIndex = 0;
         renderCurrentCandidate();
     } catch (error) {
-        HeartLink.showMessage("discoveryMessage", error.message, "danger");
+        HeartLink.showMessage('discoveryMessage', error.message, 'danger');
+        container.innerHTML = '';
     }
 }
 
 function renderCurrentCandidate() {
-    const container = document.getElementById("candidateContainer");
+    const container = document.getElementById('candidateContainer');
 
     if (!candidates.length || currentIndex >= candidates.length) {
-        container.innerHTML = `
-            <div class="hl-empty">
-                Không còn hồ sơ phù hợp lúc này. Hãy thử đổi bộ lọc hoặc quay lại sau.
-            </div>
-        `;
+        container.innerHTML = HeartLink.emptyHtml(
+            '😔',
+            'Không còn hồ sơ phù hợp',
+            'Thử điều chỉnh bộ lọc hoặc quay lại sau nhé!'
+        ) + `<div class="text-center mt-3">
+            <a href="/profile/filter" class="btn btn-primary">⚙️ Điều chỉnh bộ lọc</a>
+            <button class="btn btn-outline-secondary ms-2" onclick="loadCandidates()">🔄 Tải lại</button>
+        </div>`;
         return;
     }
 
     const p = candidates[currentIndex];
-    const interests = (p.interests || []).map(x => `<span class="hl-badge me-2 mb-2">${x}</span>`).join("");
+    const avatarUrl = HeartLink.avatarUrl(p.avatar);
+    const interests = (p.interests || []).map(x =>
+        `<span class="hl-badge">${HeartLink.escapeHtml(x)}</span>`
+    ).join('');
 
     container.innerHTML = `
-        <div class="card hl-card p-4 hl-discovery-card">
-            <div class="row g-4 align-items-center">
-                <div class="col-lg-5 text-center">
-                    <img class="hl-avatar" src="${p.avatar || 'https://via.placeholder.com/320x400?text=Avatar'}" alt="avatar" />
+        <div class="card hl-card p-0 hl-discovery-card" id="discCard">
+            <div class="row g-0">
+                <div class="col-lg-5">
+                    <img class="hl-avatar" style="width:100%; max-width:100%; border-radius: 20px 0 0 20px; aspect-ratio: 3/4;"
+                         src="${HeartLink.escapeHtml(avatarUrl)}"
+                         onerror="this.src='${HeartLink.namedAvatar(p.fullName)}'"
+                         alt="${HeartLink.escapeHtml(p.fullName)}" />
                 </div>
-                <div class="col-lg-7">
-                    <div class="hl-discovery-name">${p.fullName}, ${p.age}</div>
-                    <div class="hl-meta mb-2">${p.gender} • ${p.location || 'Chưa cập nhật địa điểm'}</div>
+                <div class="col-lg-7 p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="hl-discovery-name">${HeartLink.escapeHtml(p.fullName)}, ${p.age}</div>
+                        <div class="hl-meta mb-3">
+                            ${p.gender === 'Nam' ? '👨' : p.gender === 'Nữ' ? '👩' : '🧑'} ${HeartLink.escapeHtml(p.gender)}
+                            ${p.location ? ` &bull; 📍 ${HeartLink.escapeHtml(p.location)}` : ''}
+                        </div>
 
-                    <div class="hl-discovery-bio mb-3">
-                        ${p.bio || 'Người dùng này chưa cập nhật bio.'}
+                        ${p.bio ? `<div class="hl-discovery-bio mb-4">${HeartLink.escapeHtml(p.bio)}</div>` : ''}
+
+                        <div class="mb-4">
+                            ${interests || '<span class="hl-meta">Chưa có sở thích</span>'}
+                        </div>
                     </div>
 
-                    <div class="mb-4">
-                        ${interests || '<span class="text-muted">Chưa có sở thích nổi bật</span>'}
-                    </div>
-
-                    <div class="hl-actions">
-                        <button class="btn btn-outline-danger px-4" onclick="swipe('${p.accountID}', 'Pass')">Bỏ qua</button>
-                        <button class="btn btn-success px-4" onclick="swipe('${p.accountID}', 'Like')">Thích</button>
+                    <div class="hl-swipe-buttons">
+                        <button class="hl-swipe-pass" onclick="swipe(${p.accountID}, 'Pass')"
+                                title="Bỏ qua">✕</button>
+                        <button class="hl-swipe-like" onclick="swipe(${p.accountID}, 'Like')"
+                                title="Thích">♥</button>
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="text-center mt-3 hl-meta">
+            ${currentIndex + 1} / ${candidates.length} hồ sơ
         </div>
     `;
 }
 
 async function swipe(receiverId, type) {
+    const card = document.getElementById('discCard');
+    if (card) {
+        card.classList.add(type === 'Like' ? 'swiping-right' : 'swiping-left');
+        await new Promise(r => setTimeout(r, 300));
+    }
+
     try {
-        const result = await HeartLink.apiFetch("/api/client/discovery/swipe", {
-            method: "POST",
-            body: {
-                receiverID: parseInt(receiverId),
-                type: type
-            }
+        const result = await HeartLink.apiFetch('/api/client/discovery/swipe', {
+            method: 'POST',
+            body: { receiverID: receiverId, type }
         });
 
         if (result.isMatched) {
-            HeartLink.showMessage("discoveryMessage", "🎉 Kết đôi thành công!", "success");
-        } else {
-            HeartLink.clearMessage("discoveryMessage");
+            showMatchPopup(result.matchId);
         }
 
         currentIndex++;
         renderCurrentCandidate();
     } catch (error) {
-        HeartLink.showMessage("discoveryMessage", error.message, "danger");
+        HeartLink.showToast(error.message, 'danger');
+        renderCurrentCandidate();
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function showMatchPopup(matchId) {
+    const popup = document.getElementById('matchPopup');
+    const chatBtn = document.getElementById('matchPopupChatBtn');
+    if (matchId) chatBtn.href = `/messages/${matchId}`;
+    popup.style.display = 'flex';
+}
+
+function closeMatchPopup() {
+    document.getElementById('matchPopup').style.display = 'none';
+}
+
+// Keyboard swipe support
+document.addEventListener('keydown', (e) => {
+    if (currentIndex >= candidates.length) return;
+    const p = candidates[currentIndex];
+    if (!p) return;
+    if (e.key === 'ArrowRight') swipe(p.accountID, 'Like');
+    if (e.key === 'ArrowLeft')  swipe(p.accountID, 'Pass');
+});
+
+document.addEventListener('DOMContentLoaded', () => {
     if (!HeartLink.requireAuth()) return;
     loadCandidates();
 });

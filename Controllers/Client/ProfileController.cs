@@ -47,6 +47,8 @@ public class ProfileController : ControllerBase
                 x.MinAge,
                 x.MaxAge,
                 x.Radius,
+                x.Latitude,
+                x.Longitude,
                 Interests = x.Interests.Select(i => i.InterestName).ToList()
             })
             .FirstOrDefaultAsync();
@@ -132,6 +134,26 @@ public class ProfileController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Cập nhật bộ lọc thành công." });
+    }
+
+    [HttpPut("location")]
+    public async Task<IActionResult> UpdateLocation([FromBody] UpdateLocationRequest request)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var accountId = GetCurrentAccountId();
+
+        var profile = await _context.Profiles.FirstOrDefaultAsync(x => x.AccountID == accountId);
+        if (profile == null)
+            return NotFound(new { message = "Không tìm thấy hồ sơ." });
+
+        profile.Latitude = request.Latitude;
+        profile.Longitude = request.Longitude;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Cập nhật vị trí thành công." });
     }
 
     private int GetCurrentAccountId()

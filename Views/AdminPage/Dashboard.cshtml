@@ -1,48 +1,81 @@
 @{
     ViewData["Title"] = "Dashboard Admin";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="mb-4">
-    <h1 class="hl-page-title mb-1">Dashboard Quản trị</h1>
-    <div class="hl-subtitle">Theo dõi người dùng, match và tin nhắn trong hệ thống</div>
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div>
+        <h1 class="hl-page-title mb-1">🛡️ Dashboard Quản trị</h1>
+        <div class="hl-subtitle mb-0">Theo dõi hệ thống HeartLink trong thời gian thực</div>
+    </div>
+    <a class="btn btn-primary" href="/admin/users">👥 Quản lý người dùng</a>
 </div>
 
-<div id="adminDashboardMessage" class="alert" style="display:none;"></div>
-<div id="dashboardStats" class="row g-3"></div>
+<div id="dashMsg" class="alert" style="display:none;"></div>
 
-<div class="mt-4">
-    <a class="btn btn-primary" href="/admin/users">Quản lý người dùng</a>
+<!-- Stats Row -->
+<div id="statsRow" class="row g-3 mb-4">
+    <div class="hl-loading"><div class="hl-spinner"></div></div>
+</div>
+
+<!-- Top Liked Profiles -->
+<div class="card hl-card p-4 mb-4" id="popularSection" style="display:none;">
+    <div class="hl-section-title mb-3">🔥 Top hồ sơ được yêu thích</div>
+    <div id="popularList"></div>
 </div>
 
 @section Scripts {
 <script>
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (!HeartLink.requireAdmin()) return;
 
     try {
-        const data = await HeartLink.apiFetch("/api/admin/dashboard/stats");
+        const d = await HeartLink.apiFetch('/api/admin/dashboard/stats');
 
-        const cards = [
-            { title: "Tổng người dùng", value: data.totalUsers },
-            { title: "Đang hoạt động", value: data.activeUsers },
-            { title: "Bị khóa", value: data.bannedUsers },
-            { title: "Tổng match", value: data.totalMatches },
-            { title: "Match hoạt động", value: data.activeMatches },
-            { title: "Match đã hủy", value: data.cancelledMatches },
-            { title: "Tổng tin nhắn", value: data.totalMessages }
+        const stats = [
+            { icon: '👥', title: 'Tổng người dùng',   value: d.totalUsers,          color: 'indigo' },
+            { icon: '✅', title: 'Đang hoạt động',     value: d.activeUsers,         color: 'green'  },
+            { icon: '🚫', title: 'Bị khóa',            value: d.bannedUsers,         color: 'red'    },
+            { icon: '💞', title: 'Tổng ghép đôi',      value: d.totalMatches,        color: 'pink'   },
+            { icon: '💬', title: 'Tổng tin nhắn',      value: d.totalMessages,       color: 'blue'   },
+            { icon: '🆕', title: 'User mới (30 ngày)', value: d.newUsersLast30Days,  color: 'teal'   },
+            { icon: '❌', title: 'Match đã hủy',       value: d.cancelledMatches,    color: 'amber'  },
         ];
 
-        document.getElementById("dashboardStats").innerHTML = cards.map(x => `
-            <div class="col-md-4 col-lg-3">
-                <div class="hl-stat-card">
-                    <div class="hl-stat-title">${x.title}</div>
-                    <div class="hl-stat-value">${x.value}</div>
+        document.getElementById('statsRow').innerHTML = stats.map(s => `
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="hl-stat-card ${s.color}">
+                    <span class="hl-stat-icon">${s.icon}</span>
+                    <div class="hl-stat-title">${s.title}</div>
+                    <div class="hl-stat-value">${s.value}</div>
                 </div>
             </div>
-        `).join("");
+        `).join('');
 
-    } catch (error) {
-        HeartLink.showMessage("adminDashboardMessage", error.message, "danger");
+        if (d.popularProfiles && d.popularProfiles.length > 0) {
+            const popularSection = document.getElementById('popularSection');
+            popularSection.style.display = '';
+            document.getElementById('popularList').innerHTML = d.popularProfiles.map((p, i) => {
+                const avatarUrl = p.avatar && p.avatar.trim()
+                    ? HeartLink.escapeHtml(p.avatar)
+                    : HeartLink.namedAvatar(p.fullName, 'sm');
+                return `
+                <div class="d-flex align-items-center gap-3 py-3 ${i < d.popularProfiles.length - 1 ? 'border-bottom' : ''}">
+                    <span class="fw-bold text-gradient" style="width:28px; font-size:1.1rem;">#${i+1}</span>
+                    <img class="hl-avatar-sm"
+                         src="${avatarUrl}"
+                         onerror="this.src='${HeartLink.namedAvatar(p.fullName)}'"
+                         alt="${HeartLink.escapeHtml(p.fullName)}" />
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${HeartLink.escapeHtml(p.fullName)}</div>
+                    </div>
+                    <span class="hl-badge">❤️ ${p.totalLikes} lượt thích</span>
+                </div>`;
+            }).join('');
+        }
+    } catch (err) {
+        HeartLink.showMessage('dashMsg', err.message, 'danger');
+        document.getElementById('statsRow').innerHTML = '';
     }
 });
 </script>

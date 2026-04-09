@@ -1,103 +1,278 @@
 @{
     ViewData["Title"] = "Quản lý người dùng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="hl-page-title mb-0">Quản lý người dùng</h1>
-    <a class="btn btn-outline-secondary" href="/admin">Về dashboard</a>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+        <h1 class="hl-page-title mb-1">👥 Quản lý người dùng</h1>
+        <div class="hl-subtitle mb-0">Tìm kiếm, xem và quản lý tài khoản</div>
+    </div>
+    <a class="btn btn-outline-secondary" href="/admin">← Dashboard</a>
 </div>
 
-<div id="adminUsersMessage" class="alert" style="display:none;"></div>
-
-<div class="card hl-card p-3 mb-3">
-    <div class="row g-2">
-        <div class="col-md-8">
-            <input id="keyword" class="form-control" placeholder="Tìm theo email, số điện thoại, họ tên..." />
-        </div>
+<!-- Filter Panel -->
+<div class="hl-filter-panel mb-4">
+    <div class="row g-3 align-items-end">
         <div class="col-md-4">
-            <button class="btn btn-primary w-100" onclick="loadUsers()">Tìm kiếm</button>
+            <label class="form-label">🔍 Tìm theo tên / email / SĐT</label>
+            <input id="kw" type="text" class="form-control" placeholder="Nguyễn Văn A..."
+                   onkeydown="if(event.key==='Enter') loadUsers(1)" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Giới tính</label>
+            <select id="f-gender" class="form-select">
+                <option value="">Tất cả</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Thành phố</label>
+            <input id="f-city" type="text" class="form-control" placeholder="HCM, Hà Nội..." />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Sinh từ ngày</label>
+            <input id="f-bdFrom" type="date" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Đến ngày</label>
+            <input id="f-bdTo" type="date" class="form-control" />
+        </div>
+        <div class="col-12">
+            <button class="btn btn-primary px-4" onclick="loadUsers(1)">🔍 Tìm kiếm</button>
+            <button class="btn btn-outline-secondary ms-2" onclick="resetFilter()">🔄 Đặt lại</button>
         </div>
     </div>
 </div>
 
-<div id="usersContainer"></div>
+<div id="usersMsg" class="alert" style="display:none;"></div>
+<div id="usersContainer">
+    <div class="hl-loading"><div class="hl-spinner"></div><div>Đang tải...</div></div>
+</div>
+
+<!-- ── Ban Modal ── -->
+<div id="banModal" class="hl-modal-overlay" style="display:none;">
+    <div class="hl-modal">
+        <h3>🚫 Khóa tài khoản</h3>
+        <p>Nhập lý do khóa để lưu vào hệ thống. Người dùng sẽ thấy lý do này.</p>
+        <input type="hidden" id="banTargetId" />
+        <div class="mb-3">
+            <label class="form-label">Lý do khóa <span class="text-danger">*</span></label>
+            <textarea id="banReason" class="form-control" rows="3"
+                      placeholder="Ví dụ: Vi phạm điều khoản sử dụng, phản ánh từ người dùng khác..."></textarea>
+        </div>
+        <div id="banModalMsg" class="alert" style="display:none;"></div>
+        <div class="d-flex gap-3 mt-2">
+            <button class="btn btn-danger flex-grow-1" id="confirmBanBtn" onclick="confirmBan()">
+                🚫 Xác nhận khóa
+            </button>
+            <button class="btn btn-outline-secondary" onclick="closeBanModal()">Hủy</button>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
 <script>
 let currentPage = 1;
 
+function resetFilter() {
+    document.getElementById('kw').value        = '';
+    document.getElementById('f-gender').value  = '';
+    document.getElementById('f-city').value    = '';
+    document.getElementById('f-bdFrom').value  = '';
+    document.getElementById('f-bdTo').value    = '';
+    loadUsers(1);
+}
+
 async function loadUsers(page = 1) {
     currentPage = page;
-    const keyword = document.getElementById("keyword").value.trim();
+
+    const keyword = document.getElementById('kw').value.trim();
+    const gender  = document.getElementById('f-gender').value;
+    const city    = document.getElementById('f-city').value.trim();
+    const bdFrom  = document.getElementById('f-bdFrom').value;
+    const bdTo    = document.getElementById('f-bdTo').value;
+
+    let url = `/api/admin/dashboard/users?page=${page}&pageSize=15`;
+    if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+    if (gender)  url += `&gender=${encodeURIComponent(gender)}`;
+    if (city)    url += `&city=${encodeURIComponent(city)}`;
+    if (bdFrom)  url += `&birthDateFrom=${bdFrom}`;
+    if (bdTo)    url += `&birthDateTo=${bdTo}`;
+
+    document.getElementById('usersContainer').innerHTML =
+        `<div class="hl-loading"><div class="hl-spinner"></div><div>Đang tải...</div></div>`;
 
     try {
-        const data = await HeartLink.apiFetch(`/api/admin/dashboard/users?page=${page}&pageSize=10&keyword=${encodeURIComponent(keyword)}`);
+        const data = await HeartLink.apiFetch(url);
+        HeartLink.clearMessage('usersMsg');
 
         if (!data.items.length) {
-            document.getElementById("usersContainer").innerHTML = `<div class="hl-empty">Không có dữ liệu người dùng.</div>`;
+            document.getElementById('usersContainer').innerHTML = HeartLink.emptyHtml(
+                '🔍', 'Không tìm thấy người dùng nào', 'Thử điều chỉnh bộ lọc.');
             return;
         }
 
-        const html = data.items.map(u => `
-            <div class="card hl-card p-3 mb-3">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div>
-                        <h5 class="mb-1">${u.fullName || "Chưa cập nhật tên"}</h5>
-                        <div class="hl-meta">Email: ${u.email}</div>
-                        <div class="hl-meta">SĐT: ${u.phoneNumber || "Chưa có"}</div>
-                        <div class="hl-meta">Role: ${u.userRole}</div>
-                        <div class="hl-meta">Trạng thái: ${u.status ? "Hoạt động" : "Bị khóa"}</div>
-                        <div class="hl-meta">Ngày tạo: ${HeartLink.formatDateTime(u.createdDate)}</div>
-                    </div>
-                    <div class="hl-actions">
-                        ${u.userRole === "Admin" ? "" : (u.status
-                            ? `<button class="btn btn-outline-danger" onclick="banUser(${u.accountID})">Khóa</button>`
-                            : `<button class="btn btn-outline-success" onclick="unbanUser(${u.accountID})">Mở khóa</button>`
-                        )}
-                    </div>
-                </div>
-            </div>
-        `).join("");
+        const totalPages = Math.ceil(data.totalItems / data.pageSize);
 
-        document.getElementById("usersContainer").innerHTML = `
-            ${html}
-            <div class="d-flex justify-content-center gap-2 mt-3">
-                <button class="btn btn-outline-secondary" ${data.page <= 1 ? "disabled" : ""} onclick="loadUsers(${data.page - 1})">Trang trước</button>
-                <button class="btn btn-outline-secondary" ${(data.page * data.pageSize >= data.totalItems) ? "disabled" : ""} onclick="loadUsers(${data.page + 1})">Trang sau</button>
+        const tableRows = data.items.map(u => {
+            const avatarUrl = u.avatar && u.avatar.trim()
+                ? HeartLink.escapeHtml(u.avatar)
+                : HeartLink.namedAvatar(u.fullName || 'User', 'sm');
+
+            let statusBadge = '';
+            if (u.userRole === 'Admin') {
+                statusBadge = `<span class="hl-status-badge admin">🛡️ Admin</span>`;
+            } else if (u.status) {
+                statusBadge = `<span class="hl-status-badge active">✅ Hoạt động</span>`;
+            } else {
+                statusBadge = `<span class="hl-status-badge banned">🚫 Bị khóa</span>`;
+            }
+
+            const banInfo = !u.status && u.banReason
+                ? `<div style="font-size:0.78rem; color:var(--hl-danger); margin-top:3px;">Lý do: ${HeartLink.escapeHtml(u.banReason)}</div>`
+                : '';
+
+            const birthStr = u.birthDate
+                ? new Date(u.birthDate).toLocaleDateString('vi-VN') : '—';
+
+            let actionBtn = '';
+            if (u.userRole !== 'Admin') {
+                if (u.status) {
+                    actionBtn = `<button class="btn btn-outline-danger btn-sm" onclick="openBanModal(${u.accountID})">🚫 Khóa</button>`;
+                } else {
+                    actionBtn = `<button class="btn btn-outline-success btn-sm" onclick="unbanUser(${u.accountID})">✅ Mở khóa</button>`;
+                }
+            }
+
+            return `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <img class="hl-avatar-sm" style="width:36px;height:36px;"
+                             src="${avatarUrl}"
+                             onerror="this.src='${HeartLink.namedAvatar(u.fullName || 'User')}'"
+                             alt="av" />
+                        <div>
+                            <div class="user-name">${HeartLink.escapeHtml(u.fullName || '—')}</div>
+                            <div class="hl-meta" style="font-size:0.8rem;">${HeartLink.escapeHtml(u.email)}</div>
+                            ${banInfo}
+                        </div>
+                    </div>
+                </td>
+                <td>${HeartLink.escapeHtml(u.gender || '—')}</td>
+                <td>${birthStr}</td>
+                <td>${HeartLink.escapeHtml(u.location || '—')}</td>
+                <td>${HeartLink.escapeHtml(u.phoneNumber || '—')}</td>
+                <td>${HeartLink.formatDate(u.createdDate)}</td>
+                <td>${statusBadge}</td>
+                <td>${actionBtn}</td>
+            </tr>`;
+        }).join('');
+
+        // Pagination
+        const pagBtns = Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p => Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages)
+            .map(p => `<button class="hl-page-btn ${p === currentPage ? 'active' : ''}"
+                onclick="loadUsers(${p})">${p}</button>`)
+            .join('');
+
+        document.getElementById('usersContainer').innerHTML = `
+            <div class="mb-2 hl-meta">Tìm thấy ${data.totalItems} người dùng</div>
+            <div class="table-responsive">
+            <table class="hl-admin-table">
+                <thead>
+                    <tr>
+                        <th>Người dùng</th>
+                        <th>Giới tính</th>
+                        <th>Ngày sinh</th>
+                        <th>Thành phố</th>
+                        <th>SĐT</th>
+                        <th>Ngày tạo</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
             </div>
-        `;
-    } catch (error) {
-        HeartLink.showMessage("adminUsersMessage", error.message, "danger");
+            <div class="hl-pagination mt-3">
+                <button class="hl-page-btn" ${currentPage <= 1 ? 'disabled' : ''}
+                        onclick="loadUsers(${currentPage - 1})">‹</button>
+                ${pagBtns}
+                <button class="hl-page-btn" ${currentPage >= totalPages ? 'disabled' : ''}
+                        onclick="loadUsers(${currentPage + 1})">›</button>
+            </div>`;
+    } catch (err) {
+        HeartLink.showMessage('usersMsg', err.message, 'danger');
+        document.getElementById('usersContainer').innerHTML = '';
     }
 }
 
-async function banUser(accountId) {
-    if (!confirm("Bạn chắc chắn muốn khóa tài khoản này?")) return;
+// ── Ban Modal ──
+function openBanModal(accountId) {
+    document.getElementById('banTargetId').value = accountId;
+    document.getElementById('banReason').value = '';
+    HeartLink.clearMessage('banModalMsg');
+    document.getElementById('banModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('banReason').focus(), 100);
+}
+
+function closeBanModal() {
+    document.getElementById('banModal').style.display = 'none';
+}
+
+async function confirmBan() {
+    const accountId = document.getElementById('banTargetId').value;
+    const reason    = document.getElementById('banReason').value.trim();
+
+    if (!reason) {
+        HeartLink.showMessage('banModalMsg', 'Vui lòng nhập lý do khóa.', 'danger');
+        return;
+    }
+
+    const btn = document.getElementById('confirmBanBtn');
+    btn.disabled = true;
+    btn.textContent = 'Đang xử lý...';
 
     try {
-        const result = await HeartLink.apiFetch(`/api/admin/dashboard/users/${accountId}/ban`, {
-            method: "POST"
+        await HeartLink.apiFetch(`/api/admin/dashboard/users/${accountId}/ban`, {
+            method: 'POST',
+            body: { reason }
         });
-        HeartLink.showMessage("adminUsersMessage", result.message || "Khóa tài khoản thành công.", "success");
+        closeBanModal();
+        HeartLink.showToast('Đã khóa tài khoản thành công.', 'success');
         loadUsers(currentPage);
-    } catch (error) {
-        HeartLink.showMessage("adminUsersMessage", error.message, "danger");
+    } catch (err) {
+        HeartLink.showMessage('banModalMsg', err.message, 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🚫 Xác nhận khóa';
     }
 }
 
 async function unbanUser(accountId) {
+    if (!confirm('Mở khóa tài khoản này?')) return;
     try {
-        const result = await HeartLink.apiFetch(`/api/admin/dashboard/users/${accountId}/unban`, {
-            method: "POST"
-        });
-        HeartLink.showMessage("adminUsersMessage", result.message || "Mở khóa tài khoản thành công.", "success");
+        await HeartLink.apiFetch(`/api/admin/dashboard/users/${accountId}/unban`, { method: 'POST' });
+        HeartLink.showToast('Đã mở khóa tài khoản.', 'success');
         loadUsers(currentPage);
-    } catch (error) {
-        HeartLink.showMessage("adminUsersMessage", error.message, "danger");
+    } catch (err) {
+        HeartLink.showToast(err.message, 'danger');
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// Close modal on overlay click
+document.getElementById('banModal').addEventListener('click', function(e) {
+    if (e.target === this) closeBanModal();
+});
+
+// Escape key to close modal
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBanModal(); });
+
+document.addEventListener('DOMContentLoaded', () => {
     if (!HeartLink.requireAdmin()) return;
     loadUsers(1);
 });

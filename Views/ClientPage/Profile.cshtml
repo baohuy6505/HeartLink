@@ -1,60 +1,119 @@
 @{
     ViewData["Title"] = "Hồ sơ của tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="hl-page-title mb-0">Hồ sơ của tôi</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="hl-page-title mb-1">👤 Hồ sơ của tôi</h1>
+        <div class="hl-subtitle mb-0">Thông tin cá nhân và sở thích của bạn</div>
+    </div>
     <div class="hl-actions">
-        <a class="btn btn-primary" href="/profile/edit">Chỉnh sửa hồ sơ</a>
-        <a class="btn btn-outline-secondary" href="/profile/filter">Cài bộ lọc</a>
-        <a class="btn btn-outline-warning" href="/change-password">Đổi mật khẩu</a>
+        <a class="btn btn-primary" href="/profile/edit">✏️ Chỉnh sửa</a>
+        <a class="btn btn-outline-secondary" href="/profile/filter">⚙️ Bộ lọc</a>
+        <a class="btn btn-outline-secondary" href="/change-password">🔒 Đổi mật khẩu</a>
     </div>
 </div>
 
 <div id="profileMessage" class="alert" style="display:none;"></div>
-<div id="profileContainer"></div>
+<div id="profileContainer">
+    <div class="hl-loading"><div class="hl-spinner"></div><div>Đang tải hồ sơ...</div></div>
+</div>
 
 @section Scripts {
 <script>
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (!HeartLink.requireAuth()) return;
 
     try {
-        const data = await HeartLink.apiFetch("/api/client/profile/me");
+        const d = await HeartLink.apiFetch('/api/client/profile/me');
+        const interests = (d.interests || []).map(x =>
+            `<span class="hl-badge">${HeartLink.escapeHtml(x)}</span>`
+        ).join('');
 
-        const interests = (data.interests || []).map(x => `<span class="hl-badge me-2 mb-2">${x}</span>`).join("");
+        const avatarUrl = d.avatar && d.avatar.trim()
+            ? HeartLink.escapeHtml(d.avatar)
+            : HeartLink.namedAvatar(d.fullName, 'lg');
 
-        HeartLink.setHtml("profileContainer", `
-            <div class="card hl-card p-4">
-                <div class="row g-4">
-                    <div class="col-md-4 text-center">
-                        <img class="hl-avatar" src="${data.avatar || 'https://via.placeholder.com/260?text=Avatar'}" alt="avatar" />
+        document.getElementById('profileContainer').innerHTML = `
+            <div class="card hl-card">
+                <div class="hl-profile-hero flex-wrap">
+                    <div class="text-center">
+                        <img class="hl-avatar" style="max-width:200px;"
+                             src="${avatarUrl}"
+                             onerror="this.src='${HeartLink.namedAvatar(d.fullName)}'"
+                             alt="${HeartLink.escapeHtml(d.fullName)}" />
                     </div>
-                    <div class="col-md-8">
-                        <h3>${data.fullName}</h3>
-                        <p class="hl-meta mb-1"><strong>Email:</strong> ${data.email}</p>
-                        <p class="hl-meta mb-1"><strong>SĐT:</strong> ${data.phoneNumber || 'Chưa cập nhật'}</p>
-                        <p class="hl-meta mb-1"><strong>Giới tính:</strong> ${data.gender}</p>
-                        <p class="hl-meta mb-1"><strong>Tuổi:</strong> ${data.age}</p>
-                        <p class="hl-meta mb-1"><strong>Địa điểm:</strong> ${data.location || 'Chưa cập nhật'}</p>
-                        <p class="hl-meta mb-1"><strong>Muốn tìm:</strong> ${data.targetGender || 'Tất cả'}</p>
-                        <p class="hl-meta mb-3"><strong>Bộ lọc tuổi:</strong> ${data.minAge} - ${data.maxAge}</p>
+                    <div class="hl-profile-info flex-grow-1">
+                        <h2>${HeartLink.escapeHtml(d.fullName)}, ${d.age}</h2>
+                        <div class="hl-meta mb-3">${d.gender === 'Nam' ? '👨' : d.gender === 'Nữ' ? '👩' : '🧑'} ${HeartLink.escapeHtml(d.gender)}</div>
 
-                        <div class="mb-3">
-                            <strong>Bio:</strong>
-                            <div>${data.bio || 'Chưa có bio'}</div>
-                        </div>
+                        ${d.bio ? `<p style="line-height:1.7; color: var(--hl-text-2);">${HeartLink.escapeHtml(d.bio)}</p>` : ''}
 
-                        <div>
-                            <strong>Sở thích:</strong>
-                            <div class="mt-2">${interests || '<span class="text-muted">Chưa có sở thích</span>'}</div>
+                        <div class="row g-2 mt-2">
+                            <div class="col-sm-6">
+                                <div class="hl-info-row">
+                                    <div class="hl-info-icon">📧</div>
+                                    <span class="hl-meta">${HeartLink.escapeHtml(d.email)}</span>
+                                </div>
+                            </div>
+                            ${d.phoneNumber ? `<div class="col-sm-6">
+                                <div class="hl-info-row">
+                                    <div class="hl-info-icon">📱</div>
+                                    <span class="hl-meta">${HeartLink.escapeHtml(d.phoneNumber)}</span>
+                                </div>
+                            </div>` : ''}
+                            ${d.location ? `<div class="col-sm-6">
+                                <div class="hl-info-row">
+                                    <div class="hl-info-icon">📍</div>
+                                    <span class="hl-meta">${HeartLink.escapeHtml(d.location)}</span>
+                                </div>
+                            </div>` : ''}
+                            ${d.latitude ? `<div class="col-sm-6">
+                                <div class="hl-info-row">
+                                    <div class="hl-info-icon">🗺️</div>
+                                    <span class="hl-meta">GPS: ${d.latitude.toFixed(5)}, ${d.longitude.toFixed(5)}</span>
+                                </div>
+                            </div>` : ''}
                         </div>
                     </div>
                 </div>
+
+                <div class="px-4 pb-4">
+                    <hr class="my-3" />
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="hl-profile-stat text-center">
+                                <div class="hl-stat-title">TÌM KIẾM</div>
+                                <div class="fw-bold mt-1">${HeartLink.escapeHtml(d.targetGender || 'Tất cả')}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="hl-profile-stat text-center">
+                                <div class="hl-stat-title">ĐỘ TUỔI</div>
+                                <div class="fw-bold mt-1">${d.minAge} – ${d.maxAge} tuổi</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="hl-profile-stat text-center">
+                                <div class="hl-stat-title">KHOẢNG CÁCH</div>
+                                <div class="fw-bold mt-1">${d.radius} km</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${interests ? `
+                    <div class="mt-4">
+                        <div class="hl-section-title mb-3">🎯 Sở thích</div>
+                        <div>${interests}</div>
+                    </div>` : ''}
+                </div>
             </div>
-        `);
+        `;
     } catch (error) {
-        HeartLink.showMessage("profileMessage", error.message, "danger");
+        HeartLink.showMessage('profileMessage', error.message, 'danger');
+        document.getElementById('profileContainer').innerHTML = '';
     }
 });
 </script>
