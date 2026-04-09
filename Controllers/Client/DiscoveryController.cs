@@ -52,17 +52,21 @@ public class DiscoveryController : ControllerBase
         if (myProfile == null)
             return NotFound(new { message = "Không tìm thấy hồ sơ hiện tại." });
 
-        var likedIds = await _context.Likes
+        var interactions = await _context.Likes
             .Where(x => x.SenderID == currentUserId)
-            .Select(x => x.ReceiverID)
+            .Select(x => new { x.ReceiverID, x.Type })
             .ToListAsync();
+
+        var likedIds = interactions.Where(i => i.Type == "Like").Select(i => i.ReceiverID).ToList();
+        var dislikedIds = interactions.Where(i => i.Type == "Dislike").Select(i => i.ReceiverID).ToList();
 
         var matchedIds = await _context.Matches
             .Where(x => x.Status == 1 && (x.User1ID == currentUserId || x.User2ID == currentUserId))
             .Select(x => x.User1ID == currentUserId ? x.User2ID : x.User1ID)
             .ToListAsync();
 
-        var excludedIds = likedIds.Union(matchedIds).ToList();
+        var likedAndMatchedIds = likedIds.Union(matchedIds).ToList();
+        var allExcludedIds = likedAndMatchedIds.Union(dislikedIds).ToList();
 
         var today = DateTime.Today;
         var minBirthDate = today.AddYears(-(myProfile.MaxAge + 1)).AddDays(1);
@@ -70,7 +74,7 @@ public class DiscoveryController : ControllerBase
 
         var query = _context.Profiles
             .Include(x => x.Interests)
-            .Where(x => x.AccountID != currentUserId && !excludedIds.Contains(x.AccountID));
+            .Where(x => x.AccountID != currentUserId);
 
         if (!string.IsNullOrWhiteSpace(myProfile.TargetGender) && myProfile.TargetGender != "Tất cả")
         {
@@ -79,10 +83,9 @@ public class DiscoveryController : ControllerBase
 
         query = query.Where(x => x.BirthDate >= minBirthDate && x.BirthDate <= maxBirthDate);
 
-        // Radius hiện chưa lọc chính xác vì schema hiện tại chỉ có Location dạng text.
-        // Muốn lọc khoảng cách thật, nên thêm Latitude/Longitude.
-
+        // Stage 1: Try to find users who haven't been interacted with at all
         var candidates = await query
+            .Where(x => !allExcludedIds.Contains(x.AccountID))
             .OrderByDescending(x => x.CreatedDate)
             .Take(take)
             .Select(x => new
@@ -98,6 +101,28 @@ public class DiscoveryController : ControllerBase
                 Interests = x.Interests.Select(i => i.InterestName).ToList()
             })
             .ToListAsync();
+
+        // Stage 2: Fallback to users who were 'Disliked' (Passed) if no new users found
+        if (!candidates.Any() && dislikedIds.Any())
+        {
+            candidates = await query
+                .Where(x => !likedAndMatchedIds.Contains(x.AccountID))
+                .OrderBy(x => Guid.NewGuid()) // Randomize recycled profiles
+                .Take(take)
+                .Select(x => new
+                {
+                    x.ProfileID,
+                    x.AccountID,
+                    x.FullName,
+                    Age = CalculateAge(x.BirthDate),
+                    x.Gender,
+                    x.Bio,
+                    x.Location,
+                    x.Avatar,
+                    Interests = x.Interests.Select(i => i.InterestName).ToList()
+                })
+                .ToListAsync();
+        }
 
         return Ok(candidates);
     }
