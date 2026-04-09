@@ -23,7 +23,7 @@
                 <label class="form-label x-small fw-bold hl-meta">Tìm kiếm tổng hợp</label>
                 <div class="position-relative">
                     <i data-lucide="search" class="position-absolute ms-3 top-50 translate-middle-y text-muted" size="18"></i>
-                    <input id="kw" type="text" class="form-control rounded-pill ps-5 border-0 bg-white bg-opacity-50" placeholder="Tên, Email hoặc SĐT..." 
+                    <input id="kw" type="text" class="form-control rounded-pill ps-5 border-0 bg-white bg-opacity-50" placeholder="Tên, Email hoặc SĐT..."
                            onkeydown="if(event.key==='Enter') loadUsers(1)" />
                 </div>
             </div>
@@ -54,7 +54,7 @@
 
     <!-- User Table -->
     <div id="usersMsg" class="alert hl-glass-card border-danger text-danger mb-4" style="display:none;"></div>
-    
+
     <div class="hl-glass-card p-0 overflow-hidden">
         <div id="usersContainer" class="p-0">
             <div class="p-5 text-center hl-meta"><div class="hl-spinner mx-auto mb-3"></div>Đang truy xuất dữ liệu...</div>
@@ -69,11 +69,11 @@
             <i data-lucide="shield-x" class="text-danger"></i> Khóa tài khoản
         </h3>
         <p class="hl-meta small mb-4">Hành động này sẽ ngăn người dùng truy cập vào hệ thống. Vui lòng cung cấp lý do vi phạm cụ thể.</p>
-        
+
         <input type="hidden" id="banTargetId" />
         <div class="mb-4">
             <label class="form-label x-small fw-bold hl-meta">Lý do kỷ luật</label>
-            <textarea id="banReason" class="form-control rounded-4 p-3 border-0 bg-light shadow-none" rows="3" 
+            <textarea id="banReason" class="form-control rounded-4 p-3 border-0 bg-light shadow-none" rows="3"
                       placeholder="Ví dụ: Spam tin nhắn, ngôn từ không chuẩn mực..."></textarea>
         </div>
 
@@ -87,124 +87,154 @@
 </div>
 
 @section Scripts {
-<script>
-let currentPage = 1;
+    <script>
+        let currentPage = 1;
 
-async function loadUsers(page = 1) {
-    currentPage = page;
-    const keyword = document.getElementById('kw').value.trim();
-    const gender  = document.getElementById('f-gender').value;
-    const city    = document.getElementById('f-city').value.trim();
-    const bdFrom  = document.getElementById('f-bdFrom').value;
+        async function loadUsers(page = 1) {
+            currentPage = page;
+            const keyword = document.getElementById('kw').value.trim();
+            const gender  = document.getElementById('f-gender').value;
+            const city    = document.getElementById('f-city').value.trim();
+            const bdFrom  = document.getElementById('f-bdFrom').value;
 
-    let url = `/api/admin/dashboard/users?page=${page}&pageSize=15`;
-    if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-    if (gender)  url += `&gender=${encodeURIComponent(gender)}`;
-    if (city)    url += `&city=${encodeURIComponent(city)}`;
-    if (bdFrom)  url += `&birthDateFrom=${bdFrom}`;
+            let url = `/api/admin/dashboard/users?page=${page}&pageSize=15`;
+            const urlParams = new URLSearchParams(window.location.search);
+            const statusParam = urlParams.get('status');
 
-    document.getElementById('usersContainer').innerHTML = `<div class="p-5 text-center hl-meta"><div class="hl-spinner mx-auto mb-3"></div>Tải dữ liệu...</div>`;
+            if (statusParam) url += `&status=${statusParam}`;
+            if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+            if (gender)  url += `&gender=${encodeURIComponent(gender)}`;
+            if (city)    url += `&city=${encodeURIComponent(city)}`;
+            if (bdFrom)  url += `&birthDateFrom=${bdFrom}`;
 
-    try {
-        const data = await HeartLink.apiFetch(url);
-        if (!data.items.length) {
-            document.getElementById('usersContainer').innerHTML = `<div class="p-5 text-center opacity-50"><i data-lucide="user-x" size="48" class="mb-3"></i><div>Không tìm thấy thành viên nào</div></div>`;
-            lucide.createIcons();
-            return;
+            document.getElementById('usersContainer').innerHTML = `<div class="p-5 text-center hl-meta"><div class="hl-spinner mx-auto mb-3"></div>Tải dữ liệu...</div>`;
+
+            try {
+                const data = await HeartLink.apiFetch(url);
+                if (!data.items.length) {
+                    document.getElementById('usersContainer').innerHTML = `<div class="p-5 text-center opacity-50"><i data-lucide="user-x" size="48" class="mb-3"></i><div>Không tìm thấy thành viên nào</div></div>`;
+                    lucide.createIcons();
+                    return;
+                }
+        const tableRows = data.items.map(u => {
+                    const avatar = HeartLink.avatarUrl(u.avatar, 'sm');
+                    let statusBadge = u.userRole === 'Admin' ? '<span class="status-dot admin"></span>Admin' :
+                                     u.status ? '<span class="status-dot online"></span>Active' : '<span class="status-dot offline"></span>Banned';
+
+                    const actionBtn = u.userRole === 'Admin' ? '' :
+                                     u.status ? `<button class="btn btn-sm btn-outline-danger border-0 hl-glass-card shadow-none px-3" onclick="openBanModal(${u.accountID})">Khóa</button>` :
+                                     `<button class="btn btn-sm btn-outline-success border-0 hl-glass-card shadow-none px-3" onclick="unbanUser(${u.accountID})">Mở</button>`;
+
+                    return `
+                    <tr class="hover-row transition-all">
+                        <td class="py-3 border-0 ps-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="${avatar}" class="hl-avatar-sm" />
+                                <div>
+                                    <div class="fw-bold">${HeartLink.escapeHtml(u.fullName || '—')}</div>
+                                    <div class="hl-meta x-small">${u.email}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 border-0 small hl-meta">${u.gender || '—'}</td>
+                        <td class="py-3 border-0 small hl-meta">${HeartLink.formatDate(u.birthDate)}</td>
+                        <td class="py-3 border-0 small hl-meta">${u.location || '—'}</td>
+                        <td class="py-3 border-0 fw-medium text-gradient">${statusBadge}</td>
+                        <td class="py-3 border-0 small text-danger fw-bold">${u.status ? '' : (u.banReason || 'Vi phạm điều khoản')}</td>
+                        <td class="py-3 border-0 text-end pe-4">${actionBtn}</td>
+                    </tr>`;
+                }).join('');
+
+                const totalPages = Math.ceil(data.totalItems / data.pageSize);
+                const pagHtml = Array.from({length: totalPages}, (_, i) => i + 1)
+                                .map(p => `<button class="hl-page-btn ${p===currentPage?'active':''}" onclick="loadUsers(${p})">${p}</button>`).join('');
+
+                document.getElementById('usersContainer').innerHTML = `
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-white bg-opacity-10">
+                            <tr class="x-small hl-meta fw-bold text-uppercase" style="letter-spacing:0.1em;">
+                                <th class="ps-4 border-0 py-3">Thành viên</th>
+                                <th class="border-0 py-3">Phái</th>
+                                <th class="border-0 py-3">Ngày sinh</th>
+                                <th class="border-0 py-3">Vị trí</th>
+                                <th class="border-0 py-3">Trạng thái</th>
+                                <th class="border-0 py-3">Lý do khóa</th>
+                                <th class="border-0 py-3 text-end pe-4">Thao tác</th>
+        </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                    <div class="p-4 border-top border-white border-opacity-25 d-flex justify-content-between align-items-center">
+                        <span class="hl-meta small">Hiển thị ${data.items.length} trên ${data.totalItems} kết quả</span>
+                        <div class="hl-pagination">${pagHtml}</div>
+                    </div>`;
+                lucide.createIcons();
+            } catch (err) { HeartLink.showToast(err.message, 'danger'); }
         }
 
-        const tableRows = data.items.map(u => {
-            const avatar = HeartLink.avatarUrl(u.avatar, 'sm');
-            let statusBadge = u.userRole === 'Admin' ? '<span class="status-dot admin"></span>Admin' : 
-                             u.status ? '<span class="status-dot online"></span>Active' : '<span class="status-dot offline"></span>Banned';
-            
-            const actionBtn = u.userRole === 'Admin' ? '' : 
-                             u.status ? `<button class="btn btn-sm btn-outline-danger border-0 hl-glass-card shadow-none px-3" onclick="openBanModal(${u.accountID})">Khóa</button>` :
-                             `<button class="btn btn-sm btn-outline-success border-0 hl-glass-card shadow-none px-3" onclick="unbanUser(${u.accountID})">Mở</button>`;
+        function openBanModal(id) {
+            document.getElementById('banTargetId').value = id;
+            document.getElementById('banModal').style.display = 'flex';
+        }
+        function closeBanModal() { document.getElementById('banModal').style.display = 'none'; }
 
-            return `
-            <tr class="hover-row transition-all">
-                <td class="py-3 border-0 ps-4">
-                    <div class="d-flex align-items-center gap-3">
-                        <img src="${avatar}" class="hl-avatar-sm" />
-                        <div>
-                            <div class="fw-bold">${HeartLink.escapeHtml(u.fullName || '—')}</div>
-                            <div class="hl-meta x-small">${u.email}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="py-3 border-0 small hl-meta">${u.gender || '—'}</td>
-                <td class="py-3 border-0 small hl-meta">${HeartLink.formatDate(u.birthDate)}</td>
-                <td class="py-3 border-0 small hl-meta">${u.location || '—'}</td>
-                <td class="py-3 border-0 fw-medium text-gradient">${statusBadge}</td>
-                <td class="py-3 border-0 text-end pe-4">${actionBtn}</td>
-            </tr>`;
-        }).join('');
+        async function confirmBan() {
+            const id = document.getElementById('banTargetId').value;
+            const reason = document.getElementById('banReason').value.trim();
+            if (!reason) { HeartLink.showToast('Vui lòng nhập lý do khóa', 'warning'); return; }
+            try {
+                await HeartLink.apiFetch(`/api/admin/dashboard/users/${id}/ban`, { method: 'POST', body: { reason } });
+                closeBanModal();
+                loadUsers(currentPage);
+                HeartLink.showToast('Đã khóa tài khoản', 'success');
+            } catch (err) { HeartLink.showToast(err.message, 'danger'); }
+        }
 
-        const totalPages = Math.ceil(data.totalItems / data.pageSize);
-        const pagHtml = Array.from({length: totalPages}, (_, i) => i + 1)
-                        .map(p => `<button class="hl-page-btn ${p===currentPage?'active':''}" onclick="loadUsers(${p})">${p}</button>`).join('');
+        async function unbanUser(id) {
+            if (!confirm('Bạn muốn mở khóa tài khoản này?')) return;
+            try {
+                await HeartLink.apiFetch(`/api/admin/dashboard/users/${id}/unban`, { method: 'POST' });
+                loadUsers(currentPage);
+                HeartLink.showToast('Đã mở khóa tài khoản', 'success');
+            } catch (err) { HeartLink.showToast(err.message, 'danger'); }
+        }
 
-        document.getElementById('usersContainer').innerHTML = `
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-white bg-opacity-10">
-                    <tr class="x-small hl-meta fw-bold text-uppercase" style="letter-spacing:0.1em;">
-                        <th class="ps-4 border-0 py-3">Thành viên</th>
-                        <th class="border-0 py-3">Phái</th>
-                        <th class="border-0 py-3">Ngày sinh</th>
-                        <th class="border-0 py-3">Vị trí</th>
-                        <th class="border-0 py-3">Trạng thái</th>
-                        <th class="border-0 py-3 text-end pe-4">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-            <div class="p-4 border-top border-white border-opacity-25 d-flex justify-content-between align-items-center">
-                <span class="hl-meta small">Hiển thị ${data.items.length} trên ${data.totalItems} kết quả</span>
-                <div class="hl-pagination">${pagHtml}</div>
-            </div>`;
-        lucide.createIcons();
-    } catch (err) { HeartLink.showToast(err.message, 'danger'); }
-}
+        document.addEventListener('DOMContentLoaded', () => {
+            if (HeartLink.requireAdmin()) loadUsers(1);
+        });
+    </script>
+    <style>
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
 
-function openBanModal(id) {
-    document.getElementById('banTargetId').value = id;
-    document.getElementById('banModal').style.display = 'flex';
-}
-function closeBanModal() { document.getElementById('banModal').style.display = 'none'; }
+            .status-dot.online {
+                background: #10b981;
+                box-shadow: 0 0 8px #10b98188;
+            }
 
-async function confirmBan() {
-    const id = document.getElementById('banTargetId').value;
-    const reason = document.getElementById('banReason').value.trim();
-    if (!reason) { HeartLink.showToast('Vui lòng nhập lý do khóa', 'warning'); return; }
-    try {
-        await HeartLink.apiFetch(`/api/admin/dashboard/users/${id}/ban`, { method: 'POST', body: { reason } });
-        closeBanModal();
-        loadUsers(currentPage);
-        HeartLink.showToast('Đã khóa tài khoản', 'success');
-    } catch (err) { HeartLink.showToast(err.message, 'danger'); }
-}
+            .status-dot.offline {
+                background: #ef4444;
+            }
 
-async function unbanUser(id) {
-    if (!confirm('Bạn muốn mở khóa tài khoản này?')) return;
-    try {
-        await HeartLink.apiFetch(`/api/admin/dashboard/users/${id}/unban`, { method: 'POST' });
-        loadUsers(currentPage);
-        HeartLink.showToast('Đã mở khóa tài khoản', 'success');
-    } catch (err) { HeartLink.showToast(err.message, 'danger'); }
-}
+            .status-dot.admin {
+                background: #8b5cf6;
+            }
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (HeartLink.requireAdmin()) loadUsers(1);
-});
-</script>
-<style>
-.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-.status-dot.online { background: #10b981; box-shadow: 0 0 8px #10b98188; }
-.status-dot.offline { background: #ef4444; }
-.status-dot.admin { background: #8b5cf6; }
-.hover-row:hover { background: rgba(255,255,255,0.15); }
-.transition-all { transition: all 0.3s ease; }
-.x-small { font-size: 0.7rem; }
-</style>
+        .hover-row:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+
+        .x-small {
+            font-size: 0.7rem;
+        }
+    </style>
 }

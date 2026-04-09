@@ -57,7 +57,7 @@
         <div class="col-lg-8">
             <div class="hl-glass-card p-5">
                 <div class="d-flex align-items-center justify-content-between mb-4">
-                    <h3 class="fw-extra-bold mb-0 d-flex align-items-center gap-2">
+<h3 class="fw-extra-bold mb-0 d-flex align-items-center gap-2">
                         <i data-lucide="bar-chart-3" class="text-blue-500"></i> Tăng trưởng người dùng
                     </h3>
                     <div class="hl-meta small">30 ngày gần nhất</div>
@@ -89,8 +89,8 @@
     </div>
 
     <div class="row g-5">
-        <!-- Top Profiles -->
-        <div class="col-lg-8">
+        <!-- Top Profiles (Removed as requested) -->
+        <div class="col-lg-8" style="display:none;">
             <div class="hl-glass-card p-5 h-100">
                 <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-3">
                     <i data-lucide="crown" class="text-orange-500"></i> Ngôi sao của tháng
@@ -106,7 +106,7 @@
                             </tr>
                         </thead>
                         <tbody id="topProfilesTable">
-                            <tr><td colspan="4" class="text-center py-5 hl-meta">Đang tải biểu đồ...</td></tr>
+<tr><td colspan="4" class="text-center py-5 hl-meta">Đang tải biểu đồ...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -128,9 +128,7 @@
                         <span>Danh sách vi phạm</span>
                         <i data-lucide="shield-x"></i>
                     </a>
-                    <button class="btn btn-light py-3 border-0 hl-meta small text-start px-4 opacity-50" disabled>
-                         Xuất báo cáo PDF
-                    </button>
+                    <!-- Removed PDF report -->
                     <div class="mt-auto pt-5">
                        <div class="hl-glass-card p-4 bg-white bg-opacity-40">
                              <div class="fw-bold small mb-1">Server Traffic</div>
@@ -166,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: chartData.map(d => new Date(d.registerDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })),
+labels: chartData.map(d => new Date(d.registerDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })),
                 datasets: [{
                     label: 'Người dùng mới',
                     data: chartData.map(d => d.totalNewUsers),
