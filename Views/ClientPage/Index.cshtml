@@ -1,0 +1,170 @@
+@{
+    ViewData["Title"] = "Trang chủ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="position-relative overflow-hidden" style="min-height: 90vh; display: flex; align-items: center;">
+    <!-- Animated Blobs -->
+    <div class="hl-blob" style="top: -10%; right: -10%;"></div>
+    <div class="hl-blob" style="bottom: -10%; left: -10%; background: radial-gradient(circle, rgba(114, 9, 183, 0.1) 0%, transparent 70%); animation-delay: -5s;"></div>
+
+    <div class="container position-relative">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <div class="d-inline-flex align-items-center gap-2 mb-4 px-4 py-2 hl-glass-card border-pill" style="border-radius: 50px; background: rgba(255,255,255,0.4);">
+                    <span class="hl-primary-dot"></span>
+                    <span class="fw-bold small text-pink-600" style="color: var(--hl-primary);">#1 Dating App in Vietnam</span>
+                    <i data-lucide="sparkles" size="16"></i>
+                </div>
+                
+                <h1 class="display-1 fw-extra-bold mb-4">
+                    <span class="d-block">Nâng tầm</span>
+                    <span class="text-gradient">Kết nối yêu thương</span>
+                </h1>
+                
+                <p class="fs-4 text-muted mb-5 pe-lg-5" style="line-height: 1.6;">
+                    Trải nghiệm không gian hẹn hò đẳng cấp, riêng tư và đầy tinh tế. Nơi những tâm hồn đồng điệu tìm thấy nhau qua từng nhịp chạm.
+                </p>
+                
+                <div class="d-flex flex-wrap gap-4 pt-2">
+                    <a href="/register" class="btn btn-primary btn-lg px-5 py-4 d-flex align-items-center gap-3">
+                        Bắt đầu hành trình <i data-lucide="arrow-right"></i>
+                    </a>
+                    <a href="/login" class="btn btn-outline-dark btn-lg px-5 py-4 hl-glass-card shadow-none">
+                        Đăng nhập
+                    </a>
+                </div>
+
+                <div class="mt-5 pt-4 d-flex align-items-center gap-3">
+                    <div class="d-flex -space-x-3">
+                        <img src="https://i.pravatar.cc/150?u=a1" class="hl-avatar-sm" style="border-width:3px;" />
+                        <img src="https://i.pravatar.cc/150?u=a2" class="hl-avatar-sm" style="border-width:3px; margin-left:-12px;" />
+                        <img src="https://i.pravatar.cc/150?u=a3" class="hl-avatar-sm" style="border-width:3px; margin-left:-12px;" />
+                    </div>
+                    <div class="small fw-medium">
+                        <span class="text-pink-600" style="color:var(--hl-primary);">+10k</span> người dùng đang online
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-5">
+                <div class="hl-hero-visual position-relative">
+                    <div class="hl-glass-card p-4 text-center" style="animation: float 8s infinite ease-in-out;">
+                        <div class="display-1 mb-0">💝</div>
+                        <div class="fw-bold fs-3 text-gradient mt-3">HeartLink</div>
+                        <div class="hl-meta small">L'amour est tout.</div>
+                    </div>
+                    
+                    <!-- Floating UI elements -->
+                    <div class="hl-glass-card p-3 position-absolute" style="top: -20px; right: -20px; width: 150px; transform: rotate(10deg);">
+                        <div class="d-flex align-items-center gap-2">
+                            <i data-lucide="heart" class="text-pink-600" size="16"></i>
+                            <span class="small fw-bold">New Match!</span>
+                        </div>
+                    </div>
+                    <div class="hl-glass-card p-3 position-absolute" style="bottom: 20px; left: -40px; width: 180px; transform: rotate(-5deg);">
+                        <div class="d-flex align-items-center gap-2">
+                            <i data-lucide="map-pin" class="text-blue-500" size="16"></i>
+                            <span class="small fw-bold">Tìm quanh đây</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Social proof section -->
+<div class="hl-section bg-white">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="hl-page-title fs-1">Gương mặt mới tiềm năng</h2>
+            <p class="hl-subtitle">Hàng ngàn câu chuyện tình yêu bắt đầu từ đây mỗi ngày</p>
+        </div>
+
+        <div id="sampleProfiles" class="row g-4 pt-4">
+             <div class="hl-loading mt-5"><div class="hl-spinner mx-auto"></div></div>
+        </div>
+        
+        <div class="text-center mt-5">
+             <a href="/register" class="btn btn-primary py-3 px-5 shadow-lg">Khám phá toàn bộ hồ sơ</a>
+        </div>
+    </div>
+</div>
+
+<div class="hl-section bg-light py-5">
+    <div class="container text-center">
+        <div class="row g-5">
+            <div class="col-md-4">
+                <div class="hl-glass-card p-5 h-100 hover-lift">
+                    <i data-lucide="shield" class="text-pink-600 mb-4" size="48"></i>
+                    <h4>Riêng tư tuyệt đối</h4>
+                    <p class="hl-meta">Dữ liệu của bạn được mã hóa và bảo mật nghiêm ngặt.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="hl-glass-card p-5 h-100 hover-lift">
+                    <i data-lucide="zap" class="text-orange-500 mb-4" size="48"></i>
+                    <h4>Kết nối tức thì</h4>
+                    <p class="hl-meta">Thuật toán thông minh giúp bạn tìm thấy người phù hợp nhất.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="hl-glass-card p-5 h-100 hover-lift">
+                    <i data-lucide="smile" class="text-blue-500 mb-4" size="48"></i>
+                    <h4>Trải nghiệm cao cấp</h4>
+                    <p class="hl-meta">Giao diện tinh tế, mượt mà và không quảng cáo.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const profiles = await HeartLink.apiFetch('/api/client/discovery/random?take=8', { auth: false });
+        const container = document.getElementById('sampleProfiles');
+        
+        if (!profiles || profiles.length === 0) {
+            container.innerHTML = '<div class="text-center py-5 hl-meta">Đang tải hồ sơ nổi bật...</div>';
+            return;
+        }
+
+        container.innerHTML = profiles.map(p => {
+            const avatar = HeartLink.avatarUrl(p.avatar, 'lg');
+            return `
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="hl-discovery-card position-relative shadow-lg border-0" 
+                     style="height:450px; cursor:pointer;" 
+                     onclick="location.href='/login'">
+                    <img src="${avatar}" class="hl-card-img h-100 w-100 object-fit-cover" 
+                         onerror="this.src='${HeartLink.namedAvatar(p.fullName, 'lg')}'" />
+                    <div class="hl-card-overlay p-4 d-flex flex-column justify-content-end">
+                        <div class="fw-extra-bold fs-3 mb-1 text-white">${HeartLink.escapeHtml(p.fullName)}</div>
+                        <div class="d-flex align-items-center gap-2 opacity-75 text-white">
+                            <i data-lucide="map-pin" size="14"></i>
+                            <span class="small fw-bold">${p.age} tuổi • ${p.location || 'VN'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.error(err);
+        document.getElementById('sampleProfiles').innerHTML = '';
+    }
+});
+</script>
+<style>
+.fw-extra-bold { font-weight: 800; }
+.hover-lift:hover { transform: translateY(-10px); }
+.hl-discovery-card { position: relative !important; transform: none !important; }
+.hl-discovery-card:hover { transform: translateY(-10px) !important; box-shadow: 0 40px 80px rgba(0,0,0,0.2) !important; }
+.hl-primary-dot {
+    width: 8px; height: 8px; background: var(--hl-primary); border-radius: 50%;
+    box-shadow: 0 0 10px var(--hl-primary);
+}
+</style>
+}

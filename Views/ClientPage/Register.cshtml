@@ -1,110 +1,136 @@
 @{
-    ViewData["Title"] = "Đăng ký";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = null; // Focused registration
 }
 
-<div class="row justify-content-center py-2">
-    <div class="col-lg-5 col-md-7">
-        <div class="card hl-card p-4 p-md-5">
-            <div class="text-center mb-4">
-                <span style="font-size:3rem;">💖</span>
-                <h1 class="hl-page-title mt-2 mb-1">Tham gia HeartLink</h1>
-                <p class="hl-subtitle">Tạo tài khoản nhanh chỉ với vài bước</p>
-            </div>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tham gia HeartLink</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/heartlink.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #7209b7 0%, #ff4d6d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .hl-auth-card {
+            max-width: 480px;
+            width: 100%;
+            border-radius: 3.5rem;
+            animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @@keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .x-small { font-size: 0.7rem; letter-spacing: 0.1em; }
+    </style>
+</head>
+<body>
 
-            <div id="regMessage" class="alert" style="display:none;"></div>
+<div class="hl-glass-card hl-auth-card p-5">
+    <div class="text-center mb-5">
+        <a href="/" class="text-decoration-none">
+            <h1 class="display-5 fw-extra-bold text-gradient mb-0">HeartLink</h1>
+        </a>
+        <p class="hl-meta small mt-2">Bắt đầu hành trình tìm kiếm người ấy</p>
+    </div>
 
-            <form id="regForm" novalidate>
-                <div class="mb-3">
-                    <label class="form-label" for="reg-email">Email <span class="text-danger">*</span></label>
-                    <input id="reg-email" type="email" class="form-control" placeholder="name@example.com" required />
-                </div>
+    <div id="regMessage" class="alert hl-glass-card border-danger text-danger mb-4 small" style="display:none;"></div>
 
-                <div class="mb-3">
-                    <label class="form-label" for="reg-pw">Mật khẩu <span class="text-danger">*</span></label>
-                    <input id="reg-pw" type="password" class="form-control" placeholder="••••••••" required />
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="reg-cpw">Xác nhận mật khẩu <span class="text-danger">*</span></label>
-                    <input id="reg-cpw" type="password" class="form-control" placeholder="••••••••" required />
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label" for="reg-phone">Số điện thoại</label>
-                    <input id="reg-phone" type="tel" class="form-control" placeholder="09xxxxxxxx" />
-                </div>
-
-                <button class="btn btn-primary w-100 py-3 mb-3" type="submit" id="regBtn">
-                    ✨ Đăng ký ngay
-                </button>
-            </form>
-
-            <div class="text-center mt-3">
-                <span class="text-muted">Đã có tài khoản?</span>
-                <a href="/login" class="fw-bold text-gradient ms-1">Đăng nhập ngay</a>
-            </div>
-            
-            <div class="text-center mt-4 hl-meta" style="font-size:0.85rem;">
-                ℹ️ Bạn sẽ cập nhật thông tin cá nhân (Họ tên, ngày sinh...) sau khi đăng nhập thành công.
+    <form id="regForm" class="row g-4">
+        <div class="col-12">
+            <label class="form-label x-small fw-bold text-uppercase hl-meta mb-3">Email của bạn</label>
+            <div class="position-relative">
+                <i data-lucide="mail" class="position-absolute ms-3 top-50 translate-middle-y text-muted" size="18"></i>
+                <input name="email" type="email" class="form-control form-control-lg rounded-pill ps-5 border-0 bg-white bg-opacity-50 shadow-none fs-6" placeholder="example@mail.com" required />
             </div>
         </div>
+
+        <div class="col-md-6">
+            <label class="form-label x-small fw-bold text-uppercase hl-meta mb-3">Mật khẩu</label>
+            <div class="position-relative">
+                <i data-lucide="lock" class="position-absolute ms-3 top-50 translate-middle-y text-muted" size="18"></i>
+                <input name="password" id="password" type="password" class="form-control form-control-lg rounded-pill ps-5 border-0 bg-white bg-opacity-50 shadow-none fs-6" placeholder="••••••••" required />
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label x-small fw-bold text-uppercase hl-meta mb-3">Số điện thoại</label>
+            <div class="position-relative">
+                <i data-lucide="phone" class="position-absolute ms-3 top-50 translate-middle-y text-muted" size="18"></i>
+                <input name="phoneNumber" type="tel" class="form-control form-control-lg rounded-pill ps-5 border-0 bg-white bg-opacity-50 shadow-none fs-6" placeholder="0xxx..." required />
+            </div>
+        </div>
+
+        <div class="col-12 pt-1 text-center">
+            <p class="x-small text-muted mb-0">Bằng việc đăng ký, bạn đồng ý với <a href="#" class="text-pink-600 fw-bold">Điều khoản</a>.</p>
+        </div>
+
+        <div class="col-12">
+            <button type="submit" id="regBtn" class="btn btn-primary btn-lg w-100 py-3 shadow-lg d-flex align-items-center justify-content-center gap-3">
+                Khám phá ngay <i data-lucide="sparkles"></i>
+            </button>
+        </div>
+    </form>
+
+    <div class="text-center mt-5">
+        <p class="hl-meta small">Đã có tài khoản? <a href="/login" class="fw-bold text-pink-600 text-decoration-none">Đăng nhập</a></p>
     </div>
 </div>
 
-@section Scripts {
+<div id="hl-toast-container"></div>
+
+<script src="/js/heartlink.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    if (HeartLink.getAuth()?.token) {
-        window.location.href = '/discovery';
-        return;
-    }
+    lucide.createIcons();
+    const f = document.getElementById('regForm');
+    const msg = document.getElementById('regMessage');
+    const btn = document.getElementById('regBtn');
 
-    const regForm = document.getElementById('regForm');
-    regForm.addEventListener('submit', async (e) => {
+    f.addEventListener('submit', async (e) => {
         e.preventDefault();
-        HeartLink.clearMessage('regMessage');
-
-        const email     = document.getElementById('reg-email').value.trim();
-        const password  = document.getElementById('reg-pw').value;
-        const confirm   = document.getElementById('reg-cpw').value;
-        const phone     = document.getElementById('reg-phone').value.trim();
-
-        if (password !== confirm) {
-            HeartLink.showMessage('regMessage', 'Mật khẩu xác nhận không khớp.', 'danger');
-            return;
-        }
-
-        if (!email || !password) {
-            HeartLink.showMessage('regMessage', 'Vui lòng điền Email và Mật khẩu.', 'danger');
-            return;
-        }
-
-        const btn = document.getElementById('regBtn');
+        msg.style.display = 'none';
         btn.disabled = true;
-        btn.innerHTML = '<span class="hl-spinner me-2" style="width:18px;height:18px;"></span> Đang xử lý...';
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+        const password = f.password.value;
 
         try {
-            await HeartLink.apiFetch('/api/client/auth/register', {
+            const result = await HeartLink.apiFetch('/api/client/auth/register', {
                 method: 'POST',
                 body: {
-                    email,
-                    password,
-                    confirmPassword: confirm,
-                    phoneNumber: phone || null
-                }
+                    email: f.email.value,
+                    password: password,
+                    confirmPassword: password, // Fulfillment of backend requirement
+                    phoneNumber: f.phoneNumber.value
+                },
+                auth: false
             });
 
-            HeartLink.showToast('Đăng ký thành công! Đang chuyển hướng...', 'success');
+            HeartLink.setAuth(result.token, result.email, result.role, result.accountId, result.fullName);
+            HeartLink.showToast('Chúc mừng! Tài khoản đã sẵn sàng. ✨', 'success');
+            
             setTimeout(() => {
-                window.location.href = '/login';
+                location.href = '/profile/edit';
             }, 1000);
-        } catch (err) {
-            HeartLink.showMessage('regMessage', err.message, 'danger');
+        } catch (error) {
+            msg.textContent = error.message;
+            msg.style.display = 'block';
             btn.disabled = false;
-            btn.innerHTML = '✨ Đăng ký ngay';
+            btn.innerHTML = `Khám phá ngay <i data-lucide="sparkles"></i>`;
+            lucide.createIcons();
         }
     });
 });
 </script>
-}
+</body>
+</html>

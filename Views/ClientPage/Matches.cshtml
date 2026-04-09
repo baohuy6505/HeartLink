@@ -1,18 +1,21 @@
 @{
-    ViewData["Title"] = "Danh sách ghép đôi";
+    ViewData["Title"] = "Ghép đôi của tôi";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="hl-page-title mb-1">💞 Ghép đôi</h1>
-        <div class="hl-subtitle mb-0">Những người đã cùng thích bạn</div>
+<div class="hl-section">
+    <div class="hl-blob" style="top:5%; left:5%; width:400px; height:400px; background:radial-gradient(circle, rgba(255, 77, 109, 0.08) 0%, transparent 70%);"></div>
+    
+    <div class="mb-5">
+        <h1 class="display-5 fw-extra-bold mb-1 text-gradient">Kết nối của bạn</h1>
+        <p class="hl-meta fs-5">Những tương tác thật đang chờ đợi bạn trò chuyện</p>
     </div>
-</div>
 
-<div id="matchesMessage" class="alert" style="display:none;"></div>
-<div id="matchesContainer">
-    <div class="hl-loading"><div class="hl-spinner"></div><div>Đang tải danh sách...</div></div>
+    <div id="matchesMessage" class="alert hl-glass-card border-danger text-danger mb-4" style="display:none;"></div>
+    
+    <div id="matchesContainer" class="row g-4">
+        <div class="p-5 text-center hl-meta"><div class="hl-spinner mx-auto mb-3"></div>Đang tải danh sách...</div>
+    </div>
 </div>
 
 @section Scripts {
@@ -20,77 +23,84 @@
 async function loadMatches() {
     try {
         const matches = await HeartLink.apiFetch('/api/client/matches');
+        const container = document.getElementById('matchesContainer');
 
         if (!matches.length) {
-            document.getElementById('matchesContainer').innerHTML = HeartLink.emptyHtml(
-                '💞', 'Chưa có ghép đôi nào',
-                'Hãy khám phá và thích hồ sơ phù hợp để bắt đầu kết nối!'
-            ) + `<div class="text-center mt-3">
-                <a href="/discovery" class="btn btn-primary">🔥 Khám phá ngay</a>
+            container.innerHTML = `
+            <div class="col-12 py-5 text-center">
+                <div class="hl-glass-card p-5 d-inline-block" style="max-width:500px;">
+                    <div class="hl-empty-icon mb-4" style="font-size:3rem;">💝</div>
+                    <h3 class="fw-extra-bold mb-3">Chưa có ai quẹt phải?</h3>
+                    <p class="hl-meta mb-4">Đừng lo lắng, định mệnh có thể chỉ cách bạn một cú quẹt thôi. Hãy tiếp tục khám phá!</p>
+                    <a href="/discovery" class="btn btn-primary rounded-pill px-5 py-3 shadow-lg">Khám phá ngay</a>
+                </div>
             </div>`;
+            lucide.createIcons();
             return;
         }
 
-        const auth = HeartLink.getAuth();
-        const html = `<div class="hl-match-grid">` + matches.map(m => {
-            const avatarUrl = m.otherUserAvatar && m.otherUserAvatar.trim()
-                ? HeartLink.escapeHtml(m.otherUserAvatar)
-                : HeartLink.namedAvatar(m.otherUserName, 'md');
+        container.innerHTML = matches.map(m => {
+            const auth = HeartLink.getAuth();
+            const partner = m.user1.accountID == auth.accountId ? m.user2 : m.user1;
+            const avatar = HeartLink.avatarUrl(partner.avatar, 'lg');
             const hasUnread = m.unreadCount > 0;
-            const preview = m.lastMessage
-                ? HeartLink.escapeHtml(m.lastMessage.substring(0, 50)) + (m.lastMessage.length > 50 ? '...' : '')
-                : '<span class="hl-meta">Chưa có tin nhắn</span>';
 
             return `
-            <div class="card hl-card hl-match-card" onclick="window.location.href='/messages/${m.matchID}'">
-                <div class="hl-match-card-top">
-                    <img class="hl-avatar-md"
-                         src="${avatarUrl}"
-                         onerror="this.src='${HeartLink.namedAvatar(m.otherUserName)}'"
-                         alt="${HeartLink.escapeHtml(m.otherUserName || 'User')}" />
-                    <div class="flex-grow-1 min-w-0">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="hl-match-name">${HeartLink.escapeHtml(m.otherUserName || 'Người dùng')}</div>
-                            ${hasUnread ? `<span class="hl-unread-badge">${m.unreadCount}</span>` : ''}
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                <div class="hl-discovery-card position-relative shadow-lg border-0 h-100" 
+                     style="height:500px !important; cursor:pointer;" 
+                     onclick="location.href='/messages/${m.matchID}'">
+                    
+                    <img src="${avatar}" class="hl-card-img h-100 w-100 object-fit-cover" 
+                         onerror="this.src='${HeartLink.namedAvatar(partner.fullName, 'lg')}'" />
+                    
+                    <div class="hl-card-overlay p-4 d-flex flex-column justify-content-end">
+                        <div class="d-flex justify-content-between align-items-end">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="fw-extra-bold fs-3 text-white text-truncate">${HeartLink.escapeHtml(partner.fullName)}</div>
+                                <div class="d-flex align-items-center gap-2 text-white-50 small mb-3">
+                                    <i data-lucide="map-pin" size="14"></i>
+                                    <span>${partner.age || '??'} tuổi • ${partner.location || 'VN'}</span>
+                                </div>
+                            </div>
+                            ${hasUnread ? `<div class="bg-primary px-2 py-1 rounded-pill mb-4"><span class="x-small fw-bold text-white">Tin mới</span></div>` : ''}
                         </div>
-                        <div class="hl-match-preview">${preview}</div>
-                    </div>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span class="hl-meta" style="font-size:0.8rem;">
-                        ${m.lastMessageTime ? HeartLink.formatTimeShort(m.lastMessageTime) : HeartLink.formatDate(m.matchedDate)}
-                    </span>
-                    <div class="hl-actions">
-                        <a class="btn btn-primary btn-sm" href="/messages/${m.matchID}"
-                           onclick="event.stopPropagation()">💬 Nhắn tin</a>
-                        <button class="btn btn-outline-danger btn-sm"
-                                onclick="event.stopPropagation(); cancelMatch(${m.matchID})">Hủy</button>
+                        
+                        <div class="d-flex gap-2 pt-3 border-top border-white border-opacity-20 mt-2">
+                            <button class="btn btn-primary flex-grow-1 rounded-pill py-2 d-flex align-items-center justify-content-center gap-2" onclick="event.stopPropagation(); location.href='/messages/${m.matchID}'">
+                                <i data-lucide="message-circle" size="18"></i> Nhắn tin
+                            </button>
+                            <button class="btn btn-outline-light rounded-circle shadow-none p-2 border-0 bg-white bg-opacity-10" 
+                                    style="width:40px; height:40px;"
+                                    title="Hủy ghép đôi"
+                                    onclick="event.stopPropagation(); cancelMatch(${m.matchID})">
+                                <i data-lucide="user-x" size="18"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>`;
-        }).join('') + `</div>`;
-
-        document.getElementById('matchesContainer').innerHTML = html;
-    } catch (error) {
-        HeartLink.showMessage('matchesMessage', error.message, 'danger');
-        document.getElementById('matchesContainer').innerHTML = '';
-    }
+        }).join('');
+        lucide.createIcons();
+    } catch (err) { HeartLink.showToast(err.message, 'danger'); }
 }
 
-async function cancelMatch(matchId) {
-    if (!confirm('Bạn chắc chắn muốn hủy kết nối này?')) return;
+async function cancelMatch(id) {
+    if (!confirm('Hủy kết nối với người này?')) return;
     try {
-        await HeartLink.apiFetch(`/api/client/matches/${matchId}/cancel`, { method: 'POST' });
+        await HeartLink.apiFetch(`/api/client/matches/${id}/cancel`, { method: 'POST' });
         HeartLink.showToast('Đã hủy kết nối.', 'info');
         loadMatches();
-    } catch (error) {
-        HeartLink.showToast(error.message, 'danger');
-    }
+    } catch (err) { HeartLink.showToast(err.message, 'danger'); }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (!HeartLink.requireAuth()) return;
-    loadMatches();
+    if (HeartLink.requireAuth()) loadMatches();
 });
 </script>
+<style>
+.hl-discovery-card { position: relative !important; transform: none !important; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.hl-discovery-card:hover { transform: translateY(-10px) !important; box-shadow: 0 40px 80px rgba(255, 77, 109, 0.15) !important; }
+.x-small { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
 }

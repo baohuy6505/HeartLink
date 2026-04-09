@@ -74,6 +74,8 @@ public class AuthController : ControllerBase
         {
             message = "Đăng ký thành công",
             accountId = account.AccountID,
+            email = account.Email,
+            role = account.UserRole,
             token
         });
     }

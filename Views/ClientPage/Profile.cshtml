@@ -3,118 +3,163 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="hl-page-title mb-1">👤 Hồ sơ của tôi</h1>
-        <div class="hl-subtitle mb-0">Thông tin cá nhân và sở thích của bạn</div>
-    </div>
-    <div class="hl-actions">
-        <a class="btn btn-primary" href="/profile/edit">✏️ Chỉnh sửa</a>
-        <a class="btn btn-outline-secondary" href="/profile/filter">⚙️ Bộ lọc</a>
-        <a class="btn btn-outline-secondary" href="/change-password">🔒 Đổi mật khẩu</a>
+<div class="container py-5">
+    <div id="profileMessage" class="alert hl-glass-card border-danger text-danger mb-4" style="display:none;"></div>
+
+    <div class="row g-5 justify-content-center">
+        <!-- Sidebar Profile Info -->
+        <div class="col-lg-4">
+            <div class="hl-glass-card p-5 text-center position-relative overflow-hidden">
+                <div class="hl-blob" style="width:200px; height:200px; top:-50px; left:-50px;"></div>
+                
+                <div class="position-relative d-inline-block mb-4">
+                    <img id="pAvatar" class="hl-avatar-lg" src="https://ui-avatars.com/api/?name=?" />
+                    <div class="position-absolute bottom-0 end-0 bg-success border border-white p-2 rounded-circle" style="width:20px; height:20px; box-shadow:0 0 15px #198754;"></div>
+                </div>
+                
+                <h2 id="pFullName" class="display-6 fw-extra-bold mb-1 text-gradient">--</h2>
+                <p id="pBasicInfo" class="hl-meta fs-5 mb-4">--</p>
+                           <div class="d-grid gap-2 mb-4">
+                    <a href="/profile/edit" class="btn btn-primary py-3 d-flex align-items-center justify-content-center gap-2">
+                        <i data-lucide="edit-3" size="20"></i> Chỉnh sửa hồ sơ
+                    </a>
+                    <button type="button" class="btn btn-outline-dark hl-glass-card shadow-none py-3 d-flex align-items-center justify-content-center gap-2" onclick="openPwdModal()">
+                        <i data-lucide="key-round" size="20"></i> Đổi mật khẩu
+                    </button>
+                    <a href="/profile/filter" class="btn btn-outline-dark hl-glass-card shadow-none py-3 d-flex align-items-center justify-content-center gap-2">
+                        <i data-lucide="settings" size="20"></i> Thiết lập tìm kiếm
+                    </a>
+                </div>
+
+                <div class="row g-2 pt-3 border-top border-white border-opacity-25">
+                    <div class="col-4 border-end border-white border-opacity-25">
+                        <div id="pMatches" class="fw-bold fs-4">0</div>
+                        <div class="hl-meta x-small">Matches</div>
+                    </div>
+                    <div class="col-4 border-end border-white border-opacity-25">
+                        <div id="pLikes" class="fw-bold fs-4">0</div>
+                        <div class="hl-meta x-small">Likes</div>
+                    </div>
+                    <div class="col-4">
+                        <div id="pScore" class="fw-bold fs-4">99</div>
+                        <div class="hl-meta x-small">Trust</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Showcase -->
+        <div class="col-lg-8">
+            <div class="hl-glass-card p-5 h-100 mb-5">
+                <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-2">
+                    <i data-lucide="quote" class="text-pink-600"></i> Giới thiệu
+                </h3>
+                <p id="pBio" class="fs-5 lh-lg opacity-75 mb-5">
+                    Chưa có lời giới thiệu nào. Hãy thêm vài dòng để mọi người hiểu bạn hơn nhé!
+                </p>
+
+                <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-2">
+                    <i data-lucide="sparkles" class="text-orange-500"></i> Sở thích
+                </h3>
+                <div id="pInterests" class="d-flex flex-wrap gap-2 mb-5">
+                    <span class="hl-meta">Bạn chưa thêm sở thích nào.</span>
+                </div>
+
+                <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-2">
+                    <i data-lucide="map-pin" class="text-blue-500"></i> Khu vực
+                </h3>
+                <div class="hl-glass-card p-4 bg-white bg-opacity-30">
+                    <div id="pLocation" class="fs-5 fw-medium mb-1">--</div>
+                    <div class="hl-meta small">Tọa độ GPS hiện tại được lưu để tìm kiếm quanh đây</div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="profileMessage" class="alert" style="display:none;"></div>
-<div id="profileContainer">
-    <div class="hl-loading"><div class="hl-spinner"></div><div>Đang tải hồ sơ...</div></div>
+<!-- ── Change Password Modal ── -->
+<div id="pwdModal" class="hl-modal-overlay" style="display:none; transition: 0.3s;">
+    <div class="hl-glass-card p-5" style="max-width:420px; width:90%;">
+        <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-2">
+            <i data-lucide="key-round" class="text-pink-600"></i> Đổi mật khẩu
+        </h3>
+        
+        <form id="pwdForm" class="d-grid gap-4">
+            <div class="form-group">
+                <label class="form-label x-small fw-bold hl-meta mb-2">Mật khẩu cũ</label>
+                <input name="oldPassword" type="password" class="form-control rounded-pill border-0 bg-light px-4" required />
+            </div>
+            <div class="form-group">
+                <label class="form-label x-small fw-bold hl-meta mb-2">Mật khẩu mới</label>
+                <input name="newPassword" type="password" class="form-control rounded-pill border-0 bg-light px-4" required />
+            </div>
+            <div id="pwdMsg" class="alert small hl-glass-card border-danger text-danger mb-0" style="display:none;"></div>
+            
+            <div class="d-flex gap-2 mt-2">
+                <button type="submit" id="pwdBtn" class="btn btn-primary flex-grow-1 py-3">Cập nhật</button>
+                <button type="button" class="btn btn-outline-dark border-0 hl-glass-card shadow-none" onclick="closePwdModal()">Hủy</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 @section Scripts {
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-    if (!HeartLink.requireAuth()) return;
+    const auth = HeartLink.requireAuth();
+    if (!auth) return;
 
     try {
-        const d = await HeartLink.apiFetch('/api/client/profile/me');
-        const interests = (d.interests || []).map(x =>
-            `<span class="hl-badge">${HeartLink.escapeHtml(x)}</span>`
-        ).join('');
+        const p = await HeartLink.apiFetch('/api/client/profile/me');
+        document.getElementById('pFullName').textContent = p.fullName;
+        document.getElementById('pBasicInfo').textContent = `${p.age} tuổi • ${p.gender}`;
+        document.getElementById('pAvatar').src = HeartLink.avatarUrl(p.avatar, 'lg');
+        document.getElementById('pBio').textContent = p.bio || 'Hãy thêm vài dòng giới thiệu về bản thân bạn nhé!';
+        document.getElementById('pLocation').textContent = p.location || 'Hồ Chí Minh, Việt Nam';
 
-        const avatarUrl = d.avatar && d.avatar.trim()
-            ? HeartLink.escapeHtml(d.avatar)
-            : HeartLink.namedAvatar(d.fullName, 'lg');
+        if (p.interests && p.interests.length > 0) {
+            document.getElementById('pInterests').innerHTML = p.interests.map(i => `
+                <span class="badge bg-white bg-opacity-40 text-dark border-0 shadow-sm rounded-pill px-4 py-2 hover-scale" style="transition:0.3s;">
+                    # ${HeartLink.escapeHtml(i)}
+                </span>
+            `).join('');
+        }
+        lucide.createIcons();
+    } catch (err) { HeartLink.showToast(err.message, 'danger'); }
+});
 
-        document.getElementById('profileContainer').innerHTML = `
-            <div class="card hl-card">
-                <div class="hl-profile-hero flex-wrap">
-                    <div class="text-center">
-                        <img class="hl-avatar" style="max-width:200px;"
-                             src="${avatarUrl}"
-                             onerror="this.src='${HeartLink.namedAvatar(d.fullName)}'"
-                             alt="${HeartLink.escapeHtml(d.fullName)}" />
-                    </div>
-                    <div class="hl-profile-info flex-grow-1">
-                        <h2>${HeartLink.escapeHtml(d.fullName)}, ${d.age}</h2>
-                        <div class="hl-meta mb-3">${d.gender === 'Nam' ? '👨' : d.gender === 'Nữ' ? '👩' : '🧑'} ${HeartLink.escapeHtml(d.gender)}</div>
+function openPwdModal() { document.getElementById('pwdModal').style.display = 'flex'; }
+function closePwdModal() { document.getElementById('pwdModal').style.display = 'none'; }
 
-                        ${d.bio ? `<p style="line-height:1.7; color: var(--hl-text-2);">${HeartLink.escapeHtml(d.bio)}</p>` : ''}
+document.getElementById('pwdForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const btn = document.getElementById('pwdBtn');
+    const msg = document.getElementById('pwdMsg');
+    
+    msg.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
 
-                        <div class="row g-2 mt-2">
-                            <div class="col-sm-6">
-                                <div class="hl-info-row">
-                                    <div class="hl-info-icon">📧</div>
-                                    <span class="hl-meta">${HeartLink.escapeHtml(d.email)}</span>
-                                </div>
-                            </div>
-                            ${d.phoneNumber ? `<div class="col-sm-6">
-                                <div class="hl-info-row">
-                                    <div class="hl-info-icon">📱</div>
-                                    <span class="hl-meta">${HeartLink.escapeHtml(d.phoneNumber)}</span>
-                                </div>
-                            </div>` : ''}
-                            ${d.location ? `<div class="col-sm-6">
-                                <div class="hl-info-row">
-                                    <div class="hl-info-icon">📍</div>
-                                    <span class="hl-meta">${HeartLink.escapeHtml(d.location)}</span>
-                                </div>
-                            </div>` : ''}
-                            ${d.latitude ? `<div class="col-sm-6">
-                                <div class="hl-info-row">
-                                    <div class="hl-info-icon">🗺️</div>
-                                    <span class="hl-meta">GPS: ${d.latitude.toFixed(5)}, ${d.longitude.toFixed(5)}</span>
-                                </div>
-                            </div>` : ''}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="px-4 pb-4">
-                    <hr class="my-3" />
-
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <div class="hl-profile-stat text-center">
-                                <div class="hl-stat-title">TÌM KIẾM</div>
-                                <div class="fw-bold mt-1">${HeartLink.escapeHtml(d.targetGender || 'Tất cả')}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="hl-profile-stat text-center">
-                                <div class="hl-stat-title">ĐỘ TUỔI</div>
-                                <div class="fw-bold mt-1">${d.minAge} – ${d.maxAge} tuổi</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="hl-profile-stat text-center">
-                                <div class="hl-stat-title">KHOẢNG CÁCH</div>
-                                <div class="fw-bold mt-1">${d.radius} km</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    ${interests ? `
-                    <div class="mt-4">
-                        <div class="hl-section-title mb-3">🎯 Sở thích</div>
-                        <div>${interests}</div>
-                    </div>` : ''}
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        HeartLink.showMessage('profileMessage', error.message, 'danger');
-        document.getElementById('profileContainer').innerHTML = '';
+    try {
+        await HeartLink.apiFetch('/api/client/auth/change-password', {
+            method: 'POST',
+            body: { oldPassword: f.oldPassword.value, newPassword: f.newPassword.value }
+        });
+        HeartLink.showToast('Đã đổi mật khẩu thành công! 🔑', 'success');
+        closePwdModal();
+        f.reset();
+    } catch (err) {
+        msg.textContent = err.message;
+        msg.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Cập nhật';
     }
 });
 </script>
+<style>
+.x-small { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.hover-scale:hover { transform: scale(1.05); background: white !important; }
+</style>
 }

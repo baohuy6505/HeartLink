@@ -5,7 +5,7 @@ namespace HeartLink.Controllers.Client;
 public class ClientPageController : Controller
 {
     [HttpGet("/")]
-    public IActionResult Root() => Redirect("/login");
+    public IActionResult Index() => View();
 
     [HttpGet("/login")]
     public IActionResult Login() => View();

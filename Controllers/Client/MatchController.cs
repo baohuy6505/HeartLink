@@ -30,12 +30,18 @@ public class MatchController : ControllerBase
             {
                 x.MatchID,
                 x.MatchedDate,
-                OtherUserId = x.User1ID == currentUserId ? x.User2ID : x.User1ID,
-                OtherUserName = x.User1ID == currentUserId ? x.User2.Profile!.FullName : x.User1.Profile!.FullName,
-                OtherUserAvatar = x.User1ID == currentUserId ? x.User2.Profile!.Avatar : x.User1.Profile!.Avatar,
+                User1 = new { 
+                    AccountID = x.User1ID, 
+                    FullName = x.User1.Profile!.FullName, 
+                    Avatar = x.User1.Profile!.Avatar 
+                },
+                User2 = new { 
+                    AccountID = x.User2ID, 
+                    FullName = x.User2.Profile!.FullName, 
+                    Avatar = x.User2.Profile!.Avatar 
+                },
                 LastMessageTime = x.Messages.OrderByDescending(m => m.SentTime).Select(m => (DateTime?)m.SentTime).FirstOrDefault(),
                 LastMessage = x.Messages.OrderByDescending(m => m.SentTime).Select(m => m.Content).FirstOrDefault(),
-                TotalMessages = x.Messages.Count,
                 UnreadCount = x.Messages.Count(m => !m.IsRead && m.SenderID != currentUserId)
             })
             .ToListAsync();

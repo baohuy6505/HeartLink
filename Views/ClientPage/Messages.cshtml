@@ -1,159 +1,177 @@
 @{
-    ViewData["Title"] = "Nhắn tin";
+    ViewData["Title"] = "Trò chuyện";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var matchId = (int)ViewBag.MatchId;
 }
 
-<div class="card hl-card p-0 overflow-hidden hl-chat-wrap" style="height: calc(100vh - 140px);">
-
-    <!-- Chat Header -->
-    <div class="hl-chat-header" id="chatHeader">
-        <a href="/matches" class="btn btn-outline-secondary btn-sm me-1">←</a>
-        <div id="chatHeaderAvatar"></div>
-        <div>
-            <div class="chat-name" id="chatPartnerName">Đang tải...</div>
-            <div class="chat-status">Đang hoạt động</div>
+<div class="container py-4">
+    <div class="hl-chat-viewport">
+        <!-- Sidebar: Match List -->
+        <div class="hl-chat-sidebar d-none d-md-flex flex-column">
+            <div class="p-4 border-bottom border-white border-opacity-25 bg-white bg-opacity-30 backdrop-blur d-flex align-items-center justify-content-between">
+                <h4 class="fw-extra-bold mb-0">Hộp thư</h4>
+                <div class="badge bg-pink-100 text-pink-600 rounded-pill px-2">Live</div>
+            </div>
+            <div id="matchList" class="flex-grow-1 overflow-auto p-3">
+                <div class="hl-loading mt-5"><div class="hl-spinner mx-auto"></div></div>
+            </div>
         </div>
-    </div>
 
-    <!-- Messages -->
-    <div class="hl-chat-box" id="chatBox">
-        <div class="hl-loading"><div class="hl-spinner"></div></div>
-    </div>
+        <!-- Main Chat -->
+        <div class="flex-grow-1 d-flex flex-column bg-white bg-opacity-20 backdrop-blur">
+            <div class="p-3 px-4 hl-chat-header border-bottom border-white border-opacity-25 bg-white bg-opacity-40 d-flex align-items-center gap-3">
+                <button class="btn btn-link p-0 d-md-none text-dark" onclick="location.href='/matches'">
+                    <i data-lucide="arrow-left"></i>
+                </button>
+                <div class="position-relative">
+                    <img id="chatAvatar" class="hl-avatar-sm" src="https://ui-avatars.com/api/?name=?" />
+                    <span class="position-absolute bottom-0 end-0 bg-success border border-white p-1 rounded-circle" style="width:12px; height:12px;"></span>
+                </div>
+                <div>
+                    <div id="chatName" class="fw-bold fs-5">Hãy chọn một người</div>
+                    <div id="chatStatus" class="hl-meta x-small">Nàng/Chàng đang online...</div>
+                </div>
+                <div class="ms-auto d-flex gap-3 text-muted">
+                    <i data-lucide="video" style="cursor:pointer;" class="hover-scale"></i>
+                    <i data-lucide="info" style="cursor:pointer;" class="hover-scale"></i>
+                </div>
+            </div>
 
-    <!-- Input -->
-    <div class="hl-chat-footer">
-        <div id="chatAlert" class="alert mb-2" style="display:none;"></div>
-        <form id="sendMsgForm" class="hl-chat-input-row">
-            <input id="msgInput" class="form-control hl-chat-input"
-                   placeholder="Nhập tin nhắn..." autocomplete="off" required />
-            <button class="btn btn-primary hl-chat-send" type="submit">✈</button>
-        </form>
+            <div id="chatBody" class="flex-grow-1 p-4 overflow-auto d-flex flex-column gap-3">
+                <div class="text-center mt-5 py-5 opacity-50">
+                    <i data-lucide="message-circle" size="48" class="mb-3"></i>
+                    <div>Vui lòng chọn một cuộc trò chuyện từ danh sách</div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-white bg-opacity-30 border-top border-white border-opacity-25">
+                <form id="msgForm" class="d-flex gap-3 align-items-center">
+                    <div class="flex-grow-1 position-relative">
+                        <input id="msgInput" type="text" class="form-control rounded-pill px-4 py-3 border-0 shadow-sm" 
+                               placeholder="Nhắn gì đó thật ấn tượng..." autocomplete="off" disabled />
+                        <div class="position-absolute right-0 top-50 translate-middle-y me-3 d-flex gap-2 text-muted">
+                            <i data-lucide="paperclip" size="18" style="cursor:pointer;"></i>
+                            <i data-lucide="smile" size="18" style="cursor:pointer;"></i>
+                        </div>
+                    </div>
+                    <button type="submit" id="sendBtn" class="btn btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center" 
+                            style="width:52px; height:52px; flex-shrink:0;" disabled>
+                        <i data-lucide="send-horizonal" size="22"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
 <script>
-const matchId = @matchId;
-let auth = null;
-let matchInfo = null;
-let polling = null;
-
-async function loadMatchInfo() {
-    try {
-        const matches = await HeartLink.apiFetch('/api/client/matches');
-        matchInfo = matches.find(m => m.matchID === matchId);
-        if (matchInfo) {
-            document.getElementById('chatPartnerName').textContent =
-                matchInfo.otherUserName || 'Người dùng';
-
-            const avatarUrl = matchInfo.otherUserAvatar && matchInfo.otherUserAvatar.trim()
-                ? HeartLink.escapeHtml(matchInfo.otherUserAvatar)
-                : HeartLink.namedAvatar(matchInfo.otherUserName, 'sm');
-
-            document.getElementById('chatHeaderAvatar').innerHTML = `
-                <img class="hl-avatar-sm" src="${avatarUrl}"
-                     onerror="this.src='${HeartLink.namedAvatar(matchInfo.otherUserName)}'"
-                     alt="avatar" />`;
-        }
-    } catch { /* skip */ }
-}
-
-async function loadMessages() {
-    try {
-        const messages = await HeartLink.apiFetch(`/api/client/messages/${matchId}`);
-        const chatBox   = document.getElementById('chatBox');
-        const wasAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 60;
-
-        if (!messages.length) {
-            chatBox.innerHTML = HeartLink.emptyHtml('💬', 'Hãy bắt đầu cuộc trò chuyện!', '');
-            return;
-        }
-
-        chatBox.innerHTML = messages.map(m => {
-            const isMine = m.senderID === auth.accountId;
-            const time   = HeartLink.formatTimeShort(m.sentTime);
-            const readHtml = isMine
-                ? `<span class="hl-read-indicator ${m.isRead ? 'seen' : 'sent'}">${m.isRead ? '✓✓' : '✓'}</span>`
-                : '';
-
-            return `
-            <div class="hl-msg-row ${isMine ? 'mine' : 'theirs'}">
-                ${!isMine && matchInfo ? `
-                <img class="hl-avatar-sm"
-                     src="${matchInfo.otherUserAvatar ? HeartLink.escapeHtml(matchInfo.otherUserAvatar) : HeartLink.namedAvatar(matchInfo.otherUserName, 'sm')}"
-                     alt="av" style="width:32px;height:32px;border-radius:50%;"/>` : ''}
-                <div>
-                    <div class="hl-message ${isMine ? 'mine' : 'theirs'}">${HeartLink.escapeHtml(m.content)}</div>
-                    <div class="hl-msg-time">
-                        <span>${time}</span>
-                        ${readHtml}
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
-
-        if (wasAtBottom) {
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        // Mark as read
-        await HeartLink.apiFetch(`/api/client/messages/${matchId}/read`, { method: 'POST' }).catch(() => {});
-    } catch (err) {
-        HeartLink.showMessage('chatAlert', err.message, 'danger');
-    }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
-    auth = HeartLink.requireAuth();
+    const auth = HeartLink.requireAuth();
     if (!auth) return;
 
-    await loadMatchInfo();
-    await loadMessages();
+    const matchId = @(ViewBag.MatchId ?? 0);
+    const msgForm = document.getElementById('msgForm');
+    const msgInput = document.getElementById('msgInput');
+    const chatBody = document.getElementById('chatBody');
+    const matchList = document.getElementById('matchList');
 
-    // Auto-scroll on load
-    const chatBox = document.getElementById('chatBox');
-    chatBox.scrollTop = chatBox.scrollHeight;
+    let currentMatchId = matchId;
+    let pollTimer = null;
 
-    // Send message
-    document.getElementById('sendMsgForm').addEventListener('submit', async (e) => {
+    async function loadMatches() {
+        try {
+            const matches = await HeartLink.apiFetch('/api/client/matches');
+            if (matches.length === 0) {
+                matchList.innerHTML = '<div class="hl-meta p-5 text-center small">Bạn chưa có ghép đôi nào.</div>';
+                return;
+            }
+
+            matchList.innerHTML = matches.map(m => {
+                const partner = m.user1.accountID == auth.accountId ? m.user2 : m.user1;
+                const active = m.matchID == currentMatchId ? 'bg-white bg-opacity-50 shadow-sm border-white' : 'border-transparent';
+                const avatar = HeartLink.avatarUrl(partner.avatar, 'sm');
+                const hasUnread = m.unreadCount > 0;
+                
+                return `
+                <div class="p-3 mb-3 rounded-4 border-2 transition-all hl-chat-item ${active}" style="cursor:pointer; border: 1px solid;" onclick="location.href='/messages/${m.matchID}'">
+                    <div class="d-flex align-items-center gap-3">
+                        <img class="hl-avatar-sm" src="${avatar}" />
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="fw-bold text-truncate small">${HeartLink.escapeHtml(partner.fullName)}</div>
+                            <div class="hl-meta x-small text-truncate ${hasUnread ? 'fw-bold text-pink-600' : ''}">
+                                ${HeartLink.escapeHtml(m.lastMessage || 'Lời chào đầu tiên...')}
+                            </div>
+                        </div>
+                        ${hasUnread ? `<span class="badge rounded-pill bg-primary" style="font-size:0.6rem;">${m.unreadCount}</span>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function loadMessages() {
+        if (!currentMatchId) return;
+        try {
+            const data = await HeartLink.apiFetch(`/api/client/messages/${currentMatchId}`);
+            const partner = data.partner;
+            const messages = data.messages;
+
+            document.getElementById('chatName').textContent = partner.fullName;
+            document.getElementById('chatAvatar').src = HeartLink.avatarUrl(partner.avatar, 'sm');
+            msgInput.disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+
+            const html = messages.map(m => {
+                const isMine = m.senderID == auth.accountId;
+                const time = HeartLink.formatTimeShort(m.sentTime);
+                const status = isMine ? `<span class="ms-1" style="font-size:0.7rem;">${m.isRead ? '✓✓' : '✓'}</span>` : '';
+                
+                return `
+                <div class="hl-message-bubble ${isMine ? 'mine' : 'theirs'}">
+                    <div>${HeartLink.escapeHtml(m.content)}</div>
+                    <div class="opacity-75 text-end pt-1" style="font-size:0.65rem;">
+                        ${time} ${status}
+                    </div>
+                </div>`;
+            }).join('');
+
+            const shouldScroll = chatBody.scrollTop + chatBody.clientHeight >= chatBody.scrollHeight - 60;
+            chatBody.innerHTML = html || `<div class="text-center mt-5 opacity-50 small">Hãy gửi tin nhắn đầu tiên đến ${partner.fullName}</div>`;
+            if (shouldScroll || !pollTimer) chatBody.scrollTop = chatBody.scrollHeight;
+
+            await HeartLink.apiFetch(`/api/client/messages/${currentMatchId}/read`, { method: 'POST' });
+        } catch (err) { console.error(err); }
+    }
+
+    msgForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const input   = document.getElementById('msgInput');
-        const content = input.value.trim();
-        if (!content) return;
+        const content = msgInput.value.trim();
+        if (!content || !currentMatchId) return;
 
-        input.value   = '';
-        input.disabled = true;
-
+        msgInput.value = '';
         try {
             await HeartLink.apiFetch('/api/client/messages/send', {
                 method: 'POST',
-                body: { matchID: matchId, content }
+                body: { matchId: currentMatchId, content }
             });
-            HeartLink.clearMessage('chatAlert');
             await loadMessages();
-            chatBox.scrollTop = chatBox.scrollHeight;
-        } catch (err) {
-            HeartLink.showMessage('chatAlert', err.message, 'danger');
-            input.value = content; // restore
-        } finally {
-            input.disabled = false;
-            input.focus();
-        }
+        } catch (err) { HeartLink.showToast(err.message, 'danger'); }
     });
 
-    // Enter to send
-    document.getElementById('msgInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            document.getElementById('sendMsgForm').requestSubmit();
-        }
-    });
-
-    // Poll every 4 seconds
-    polling = setInterval(loadMessages, 4000);
+    await loadMatches();
+    if (currentMatchId) {
+        await loadMessages();
+        pollTimer = setInterval(loadMessages, 4000);
+    }
+    
+    lucide.createIcons();
 });
-
-window.addEventListener('beforeunload', () => { if (polling) clearInterval(polling); });
 </script>
+<style>
+.backdrop-blur { backdrop-filter: blur(15px); }
+.transition-all { transition: all 0.3s ease; }
+.x-small { font-size: 0.75rem; }
+.right-0 { right: 0; }
+.hl-chat-item:hover { transform: scale(1.02); background: rgba(255,255,255,0.4); }
+</style>
 }
