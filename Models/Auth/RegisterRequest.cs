@@ -10,7 +10,7 @@ public class RegisterRequest
     [Required, MinLength(6), MaxLength(100)]
     public string Password { get; set; } = null!;
 
-    [Required, Compare(nameof(Password))]
+    [Required, Compare(nameof(Password), ErrorMessage = "Mật khẩu xác nhận không khớp.")]
     public string ConfirmPassword { get; set; } = null!;
 
     [MaxLength(15)]
@@ -24,27 +24,4 @@ public class RegisterRequest
 
     [Required, RegularExpression("Nam|Nữ|Khác")]
     public string Gender { get; set; } = null!;
-
-    [MaxLength(500)]
-    public string? Bio { get; set; }
-
-    [MaxLength(255)]
-    public string? Location { get; set; }
-
-    [MaxLength(255)]
-    public string? Avatar { get; set; }
-
-    [RegularExpression("Nam|Nữ|Khác|Tất cả")]
-    public string TargetGender { get; set; } = "Tất cả";
-
-    [Range(18, 99)]
-    public int MinAge { get; set; } = 18;
-
-    [Range(18, 99)]
-    public int MaxAge { get; set; } = 99;
-
-    [Range(1, 500)]
-    public double Radius { get; set; } = 50;
-
-    public List<string> Interests { get; set; } = new();
 }

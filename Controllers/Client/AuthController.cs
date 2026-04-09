@@ -23,7 +23,6 @@ public class AuthController : ControllerBase
         _context = context;
         _jwtService = jwtService;
     }
-
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
@@ -32,9 +31,6 @@ public class AuthController : ControllerBase
 
         if (request.BirthDate.Date > DateTime.Today.AddYears(-18))
             return BadRequest(new { message = "Người dùng phải từ 18 tuổi trở lên." });
-
-        if (request.MinAge > request.MaxAge)
-            return BadRequest(new { message = "MinAge không được lớn hơn MaxAge." });
 
         var email = request.Email.Trim().ToLower();
         var phone = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
@@ -63,29 +59,13 @@ public class AuthController : ControllerBase
             FullName = request.FullName.Trim(),
             BirthDate = request.BirthDate.Date,
             Gender = request.Gender,
-            Bio = string.IsNullOrWhiteSpace(request.Bio) ? null : request.Bio.Trim(),
-            Location = string.IsNullOrWhiteSpace(request.Location) ? null : request.Location.Trim(),
-            Avatar = string.IsNullOrWhiteSpace(request.Avatar) ? null : request.Avatar.Trim(),
-            TargetGender = string.IsNullOrWhiteSpace(request.TargetGender) ? "Tất cả" : request.TargetGender,
-            MinAge = request.MinAge,
-            MaxAge = request.MaxAge,
-            Radius = request.Radius,
+            TargetGender = "Tất cả",
+            MinAge = 18,
+            MaxAge = 99,
+            Radius = 50,
             CreatedDate = DateTime.Now
         };
 
-        var interests = request.Interests
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(20)
-            .Select(x => new ProfileInterest
-            {
-                Profile = profile,
-                InterestName = x
-            })
-            .ToList();
-
-        profile.Interests = interests;
         account.Profile = profile;
 
         _context.Accounts.Add(account);
