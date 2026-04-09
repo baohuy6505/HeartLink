@@ -90,6 +90,8 @@ public class ProfileController : ControllerBase
         profile.MinAge = request.MinAge;
         profile.MaxAge = request.MaxAge;
         profile.Radius = request.Radius;
+        profile.Latitude = request.Latitude;
+        profile.Longitude = request.Longitude;
 
         _context.ProfileInterests.RemoveRange(profile.Interests);
 
