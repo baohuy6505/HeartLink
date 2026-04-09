@@ -20,6 +20,28 @@ public class DiscoveryController : ControllerBase
         _context = context;
     }
 
+    [AllowAnonymous]
+    [HttpGet("random")]
+    public async Task<IActionResult> GetRandom([FromQuery] int take = 6)
+    {
+        take = Math.Clamp(take, 1, 10);
+        var randomProfiles = await _context.Profiles
+            .OrderBy(r => Guid.NewGuid())
+            .Take(take)
+            .Select(x => new
+            {
+                x.ProfileID,
+                x.FullName,
+                Age = DateTime.Today.Year - x.BirthDate.Year,
+                x.Gender,
+                x.Location,
+                x.Avatar
+            })
+            .ToListAsync();
+
+        return Ok(randomProfiles);
+    }
+
     [HttpGet("candidates")]
     public async Task<IActionResult> GetCandidates([FromQuery] int take = 10)
     {

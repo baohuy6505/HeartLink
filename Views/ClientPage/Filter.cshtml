@@ -1,53 +1,69 @@
 @{
-    ViewData["Title"] = "Cài đặt bộ lọc";
+    ViewData["Title"] = "Cài đặt tìm kiếm";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="card hl-card p-4 p-md-5 hl-form-card">
-    <h1 class="hl-page-title mb-1">⚙️ Bộ lọc tìm kiếm</h1>
-    <p class="hl-subtitle">Tinh chỉnh để tìm người phù hợp hơn với bạn</p>
+<div class="hl-section">
+    <div class="hl-blob" style="top:5%; right:5%; background:radial-gradient(circle, rgba(114, 9, 183, 0.05) 0%, transparent 70%);"></div>
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div id="filterMessage" class="alert hl-glass-card border-danger text-danger mb-4" style="display:none;"></div>
 
-    <div id="filterMessage" class="alert" style="display:none;"></div>
+            <div class="hl-glass-card p-5">
+                <div class="d-flex align-items-center gap-3 mb-5">
+                    <div class="btn btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center" style="width:50px; height:50px;">
+                        <i data-lucide="sliders-horizontal" size="24"></i>
+                    </div>
+                    <div>
+                        <h1 class="display-6 fw-extra-bold mb-0">Bộ lọc tìm kiếm</h1>
+                        <p class="hl-meta mb-0">Tiêu chuẩn để chúng tôi tìm thấy người phù hợp</p>
+                    </div>
+                </div>
 
-    <form id="filterForm" class="row g-4" novalidate>
-        <div class="col-md-4">
-            <label class="form-label">Muốn tìm giới tính</label>
-            <select id="f-target" class="form-select">
-                <option value="Tất cả">Tất cả</option>
-                <option value="Nam">Nam 👨</option>
-                <option value="Nữ">Nữ 👩</option>
-                <option value="Khác">Khác</option>
-            </select>
-        </div>
+                <form id="filterForm" class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label x-small fw-bold text-uppercase hl-meta">Giới tính bạn quan tâm</label>
+                        <select id="f-target" class="form-select form-select-lg rounded-pill px-4 border-0 bg-light shadow-sm">
+                            <option value="Tất cả">Tất cả mọi người</option>
+                            <option value="Nam">Nam giới</option>
+                            <option value="Nữ">Nữ giới</option>
+                            <option value="Khác">Phù hợp với tôi (Khác)</option>
+                        </select>
+                    </div>
 
-        <div class="col-md-4">
-            <label class="form-label">Tuổi tối thiểu <span id="minAgeVal" class="text-gradient fw-bold"></span></label>
-            <input id="f-minage" type="number" class="form-control" min="18" max="99" value="18"
-                   oninput="document.getElementById('minAgeVal').textContent = '(' + this.value + ')'"/>
-        </div>
+                    <div class="col-md-6 border-start border-white border-opacity-25 ps-md-4">
+                        <label class="form-label x-small fw-bold text-uppercase hl-meta mb-3">Độ tuổi mong muốn</label>
+                        <div class="d-flex align-items-center gap-3 bg-light rounded-pill p-2 px-4 shadow-sm">
+                            <input id="f-minage" type="number" class="form-control border-0 bg-transparent text-center fw-bold" min="18" max="99" value="18" style="width:80px;" />
+                            <span class="hl-meta opacity-50">đến</span>
+                            <input id="f-maxage" type="number" class="form-control border-0 bg-transparent text-center fw-bold" min="18" max="99" value="45" style="width:80px;" />
+                        </div>
+                    </div>
 
-        <div class="col-md-4">
-            <label class="form-label">Tuổi tối đa <span id="maxAgeVal" class="text-gradient fw-bold"></span></label>
-            <input id="f-maxage" type="number" class="form-control" min="18" max="99" value="45"
-                   oninput="document.getElementById('maxAgeVal').textContent = '(' + this.value + ')'"/>
-        </div>
+                    <div class="col-12 py-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <label class="form-label x-small fw-bold text-uppercase hl-meta">Khoảng cách tối đa</label>
+                            <span id="radiusVal" class="text-pink-600 fw-bold" style="color:var(--hl-primary);">50 km</span>
+                        </div>
+                        <input id="f-radius" type="range" class="form-range" min="1" max="500" value="50"
+                               oninput="document.getElementById('radiusVal').textContent = this.value + ' km'"/>
+                        <div class="d-flex justify-content-between x-small hl-meta mt-1">
+                            <span>1 km</span><span>500 km</span>
+                        </div>
+                    </div>
 
-        <div class="col-12">
-            <label class="form-label">Khoảng cách tối đa (km) <span id="radiusVal" class="text-gradient fw-bold"></span></label>
-            <input id="f-radius" type="range" class="form-range" min="1" max="500" value="50"
-                   oninput="document.getElementById('radiusVal').textContent = this.value + ' km'"/>
-            <div class="d-flex justify-content-between hl-meta mt-1">
-                <span>1 km</span><span>500 km</span>
+                    <div class="col-12 d-flex gap-3 pt-4">
+                        <button class="btn btn-primary btn-lg flex-grow-1 py-3 shadow-lg" type="submit" id="saveFilterBtn">
+                           <i data-lucide="check" size="20" class="me-2"></i> Lưu cài đặt
+                        </button>
+                        <a class="btn btn-outline-dark btn-lg px-5 py-3 hl-glass-card shadow-none" href="/discovery">
+                           Hủy
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
-
-        <div class="col-12 d-flex gap-3 mt-2">
-            <button class="btn btn-primary flex-grow-1 py-3" type="submit" id="saveFilterBtn">
-                💾 Lưu bộ lọc
-            </button>
-            <a class="btn btn-outline-secondary" href="/discovery">🔥 Khám phá ngay</a>
-        </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {
@@ -61,30 +77,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('f-minage').value = p.minAge || 18;
         document.getElementById('f-maxage').value = p.maxAge || 45;
         document.getElementById('f-radius').value = p.radius || 50;
-        document.getElementById('minAgeVal').textContent = `(${p.minAge || 18})`;
-        document.getElementById('maxAgeVal').textContent = `(${p.maxAge || 45})`;
         document.getElementById('radiusVal').textContent  = `${p.radius || 50} km`;
-    } catch (err) {
-        HeartLink.showMessage('filterMessage', err.message, 'danger');
-    }
+    } catch (err) { HeartLink.showToast(err.message, 'danger'); }
 
     document.getElementById('filterForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        HeartLink.clearMessage('filterMessage');
-
         const minAge = parseInt(document.getElementById('f-minage').value);
         const maxAge = parseInt(document.getElementById('f-maxage').value);
+
         if (minAge > maxAge) {
-            HeartLink.showMessage('filterMessage', 'Tuổi tối thiểu không được lớn hơn tuổi tối đa.', 'danger');
+            HeartLink.showToast('Tuổi tối thiểu không được lớn hơn tuổi tối đa.', 'danger');
             return;
         }
 
         const btn = document.getElementById('saveFilterBtn');
         btn.disabled = true;
-        btn.textContent = 'Đang lưu...';
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Đang lưu...`;
 
         try {
-            const r = await HeartLink.apiFetch('/api/client/profile/filter', {
+            await HeartLink.apiFetch('/api/client/profile/filter', {
                 method: 'PUT',
                 body: {
                     targetGender: document.getElementById('f-target').value,
@@ -92,14 +103,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     radius: parseFloat(document.getElementById('f-radius').value)
                 }
             });
-            HeartLink.showToast(r.message || 'Đã lưu bộ lọc!', 'success');
+            HeartLink.showToast('Đã lưu cài đặt tìm kiếm!', 'success');
+            setTimeout(() => location.href = '/discovery', 800);
         } catch (err) {
-            HeartLink.showMessage('filterMessage', err.message, 'danger');
+            HeartLink.showToast(err.message, 'danger');
         } finally {
             btn.disabled = false;
-            btn.textContent = '💾 Lưu bộ lọc';
+            btn.innerHTML = `<i data-lucide="check" size="20" class="me-2"></i> Lưu cài đặt`;
+            lucide.createIcons();
         }
     });
+    lucide.createIcons();
 });
 </script>
+<style>
+.x-small { font-size: 0.75rem; letter-spacing: 0.05em; }
+.form-range::-webkit-slider-thumb { background: var(--hl-primary); box-shadow: 0 0 10px rgba(255, 77, 109, 0.4); }
+</style>
 }

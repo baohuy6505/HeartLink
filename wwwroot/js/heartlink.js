@@ -10,13 +10,13 @@ window.HeartLink = (() => {
         catch { return null; }
     }
 
-    function saveAuth(data) {
+    function setAuth(token, email, role, accountId, fullName) {
         localStorage.setItem(AUTH_KEY, JSON.stringify({
-            token:     data.token,
-            accountId: data.accountId,
-            email:     data.email    || null,
-            role:      data.role     || 'User',
-            fullName:  data.fullName || null
+            token,
+            email,
+            role: role || 'User',
+            accountId,
+            fullName
         }));
         renderNavbar();
     }
@@ -201,13 +201,28 @@ window.HeartLink = (() => {
 
     // ── Avatar fallback ───────────────────────────────────────
     function avatarUrl(url, size = 'md') {
-        if (url && url.trim()) return url.trim();
-        return `https://ui-avatars.com/api/?name=User&background=ede9fe&color=7c3aed&size=${size === 'sm' ? 64 : 128}&bold=true&font-size=0.4`;
+        if (url && url.trim()) {
+            // If it's a relative path starting with /uploads, it's a local file
+            if (url.startsWith('http') || url.startsWith('/')) return url.trim();
+        }
+        return `https://ui-avatars.com/api/?name=User&background=fce7f3&color=db2777&size=${size === 'sm' ? 64 : 150}&bold=true&font-size=0.4`;
     }
 
     function namedAvatar(name, size = 'md') {
         const encoded = encodeURIComponent(name || 'HL');
-        return `https://ui-avatars.com/api/?name=${encoded}&background=ede9fe&color=7c3aed&size=${size === 'sm' ? 64 : 128}&bold=true&font-size=0.4`;
+        return `https://ui-avatars.com/api/?name=${encoded}&background=fce7f3&color=db2777&size=${size === 'sm' ? 64 : 150}&bold=true&font-size=0.4`;
+    }
+
+    // ── File Upload ───────────────────────────────────────────
+    async function uploadAvatar(file) {
+        if (!file) throw new Error('Vui lòng chọn file.');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return await apiFetch('/api/client/upload/avatar', {
+            method: 'POST',
+            body: formData
+        });
     }
 
     // ── GPS Location ──────────────────────────────────────────
@@ -257,7 +272,7 @@ window.HeartLink = (() => {
     document.addEventListener('DOMContentLoaded', renderNavbar);
 
     return {
-        getAuth, saveAuth, clearAuth, getToken,
+        getAuth, setAuth, clearAuth, getToken,
         requireAuth, requireAdmin,
         apiFetch,
         renderNavbar,
@@ -266,7 +281,7 @@ window.HeartLink = (() => {
         formatDate, formatDateTime, formatTimeShort,
         calculateAge,
         escapeHtml, avatarUrl, namedAvatar,
-        updateLocation, getCurrentPosition,
+        uploadAvatar, updateLocation, getCurrentPosition,
         loadingHtml, emptyHtml
     };
 })();

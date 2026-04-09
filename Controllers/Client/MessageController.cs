@@ -47,7 +47,17 @@ public class MessageController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(messages);
+        var partnerId = match.User1ID == userId ? match.User2ID : match.User1ID;
+        var partner = await _context.Profiles
+            .Where(p => p.AccountID == partnerId)
+            .Select(p => new { p.FullName, p.Avatar })
+            .FirstOrDefaultAsync();
+
+        return Ok(new
+        {
+            partner = partner ?? new { FullName = "Người dùng", Avatar = (string)null },
+            messages
+        });
     }
 
     [HttpPost("send")]

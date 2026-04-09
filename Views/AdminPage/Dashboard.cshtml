@@ -1,27 +1,110 @@
 @{
-    ViewData["Title"] = "Dashboard Admin";
+    ViewData["Title"] = "Bảng điều khiển Admin";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
-    <div>
-        <h1 class="hl-page-title mb-1">🛡️ Dashboard Quản trị</h1>
-        <div class="hl-subtitle mb-0">Theo dõi hệ thống HeartLink trong thời gian thực</div>
+<div class="hl-section">
+    <div class="hl-blob" style="top:5%; left:10%; width:500px; height:500px; background:radial-gradient(circle, rgba(255, 77, 109, 0.05) 0%, transparent 70%);"></div>
+    
+    <div class="d-flex align-items-center justify-content-between mb-5">
+        <div>
+            <h1 class="display-5 fw-extra-bold mb-0 text-gradient">Quản trị hệ thống</h1>
+            <p class="hl-meta fs-5">Tổng quan hoạt động và số liệu HeartLink</p>
+        </div>
+        <div class="hl-glass-card p-3 d-flex align-items-center gap-3">
+             <div class="bg-success rounded-circle" style="width:12px; height:12px; box-shadow:0 0 10px #198754;"></div>
+             <span class="fw-bold small">System Live</span>
+        </div>
     </div>
-    <a class="btn btn-primary" href="/admin/users">👥 Quản lý người dùng</a>
-</div>
 
-<div id="dashMsg" class="alert" style="display:none;"></div>
+    <!-- Stats Grid -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="hl-glass-card p-4 text-center hover-scale transition-all">
+                <div class="text-blue-500 mb-3"><i data-lucide="users" size="32"></i></div>
+                <div id="stat-totalUsers" class="display-6 fw-extra-bold">--</div>
+                <div class="hl-meta x-small mt-2">Tổng người dùng</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="hl-glass-card p-4 text-center hover-scale transition-all">
+                <div class="text-pink-600 mb-3"><i data-lucide="heart" size="32"></i></div>
+                <div id="stat-totalMatches" class="display-6 fw-extra-bold">--</div>
+                <div class="hl-meta x-small mt-2">Tổng ghép đôi</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="hl-glass-card p-4 text-center hover-scale transition-all">
+                <div class="text-orange-500 mb-3"><i data-lucide="user-plus" size="32"></i></div>
+                <div id="stat-newUsers" class="display-6 fw-extra-bold">--</div>
+                <div class="hl-meta x-small mt-2">Mới (30 ngày)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="hl-glass-card p-4 text-center hover-scale transition-all border-danger border-opacity-25">
+                <div class="text-danger mb-3"><i data-lucide="shield-alert" size="32"></i></div>
+                <div id="stat-bannedUsers" class="display-6 fw-extra-bold">--</div>
+                <div class="hl-meta x-small mt-2">Đã bị khóa</div>
+            </div>
+        </div>
+    </div>
 
-<!-- Stats Row -->
-<div id="statsRow" class="row g-3 mb-4">
-    <div class="hl-loading"><div class="hl-spinner"></div></div>
-</div>
+    <div class="row g-5">
+        <!-- Top Profiles -->
+        <div class="col-lg-8">
+            <div class="hl-glass-card p-5 h-100">
+                <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-3">
+                    <i data-lucide="crown" class="text-orange-500"></i> Ngôi sao của tháng
+                </h3>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle border-transparent">
+                        <thead>
+                            <tr class="hl-meta x-small fw-bold text-uppercase" style="letter-spacing:0.1em;">
+                                <th class="pb-3 border-0">Thành viên</th>
+                                <th class="pb-3 border-0">Giới tính</th>
+                                <th class="pb-3 border-0 text-center">Sức hút</th>
+                                <th class="pb-3 border-0 text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topProfilesTable">
+                            <tr><td colspan="4" class="text-center py-5 hl-meta">Đang tải biểu đồ...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-<!-- Top Liked Profiles -->
-<div class="card hl-card p-4 mb-4" id="popularSection" style="display:none;">
-    <div class="hl-section-title mb-3">🔥 Top hồ sơ được yêu thích</div>
-    <div id="popularList"></div>
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="hl-glass-card p-5 h-100 bg-white bg-opacity-30">
+                <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-3">
+                    <i data-lucide="command" class="text-blue-500"></i> Lối tắt
+                </h3>
+                <div class="d-grid gap-3">
+                    <a href="/admin/users" class="btn btn-primary py-3 d-flex align-items-center justify-content-between px-4 group">
+                        <span>Quản lý người dùng</span>
+                        <i data-lucide="chevron-right" class="transition-all" style="transform:translateX(0);"></i>
+                    </a>
+                    <a href="/admin/users?status=Banned" class="btn btn-outline-danger hl-glass-card py-3 d-flex align-items-center justify-content-between px-4 shadow-none">
+                        <span>Danh sách vi phạm</span>
+                        <i data-lucide="shield-x"></i>
+                    </a>
+                    <button class="btn btn-light py-3 border-0 hl-meta small text-start px-4 opacity-50" disabled>
+                         Xuất báo cáo PDF
+                    </button>
+                    <div class="mt-auto pt-5">
+                       <div class="hl-glass-card p-4 bg-white bg-opacity-40">
+                             <div class="fw-bold small mb-1">Server Traffic</div>
+                             <div class="progress" style="height:6px; background: rgba(0,0,0,0.05);">
+                                <div class="progress-bar bg-primary" style="width: 35%"></div>
+                             </div>
+                             <div class="hl-meta x-small mt-2">35% capacity in use</div>
+                       </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -30,53 +113,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!HeartLink.requireAdmin()) return;
 
     try {
-        const d = await HeartLink.apiFetch('/api/admin/dashboard/stats');
+        const stats = await HeartLink.apiFetch('/api/admin/dashboard/stats');
+        document.getElementById('stat-totalUsers').textContent = stats.totalUsers || 0;
+        document.getElementById('stat-newUsers').textContent = stats.newUsersLast30Days || 0;
+        document.getElementById('stat-totalMatches').textContent = stats.totalMatches || 0;
+        document.getElementById('stat-bannedUsers').textContent = stats.bannedUsers || 0;
 
-        const stats = [
-            { icon: '👥', title: 'Tổng người dùng',   value: d.totalUsers,          color: 'indigo' },
-            { icon: '✅', title: 'Đang hoạt động',     value: d.activeUsers,         color: 'green'  },
-            { icon: '🚫', title: 'Bị khóa',            value: d.bannedUsers,         color: 'red'    },
-            { icon: '💞', title: 'Tổng ghép đôi',      value: d.totalMatches,        color: 'pink'   },
-            { icon: '💬', title: 'Tổng tin nhắn',      value: d.totalMessages,       color: 'blue'   },
-            { icon: '🆕', title: 'User mới (30 ngày)', value: d.newUsersLast30Days,  color: 'teal'   },
-            { icon: '❌', title: 'Match đã hủy',       value: d.cancelledMatches,    color: 'amber'  },
-        ];
-
-        document.getElementById('statsRow').innerHTML = stats.map(s => `
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="hl-stat-card ${s.color}">
-                    <span class="hl-stat-icon">${s.icon}</span>
-                    <div class="hl-stat-title">${s.title}</div>
-                    <div class="hl-stat-value">${s.value}</div>
-                </div>
-            </div>
-        `).join('');
-
-        if (d.popularProfiles && d.popularProfiles.length > 0) {
-            const popularSection = document.getElementById('popularSection');
-            popularSection.style.display = '';
-            document.getElementById('popularList').innerHTML = d.popularProfiles.map((p, i) => {
-                const avatarUrl = p.avatar && p.avatar.trim()
-                    ? HeartLink.escapeHtml(p.avatar)
-                    : HeartLink.namedAvatar(p.fullName, 'sm');
-                return `
-                <div class="d-flex align-items-center gap-3 py-3 ${i < d.popularProfiles.length - 1 ? 'border-bottom' : ''}">
-                    <span class="fw-bold text-gradient" style="width:28px; font-size:1.1rem;">#${i+1}</span>
-                    <img class="hl-avatar-sm"
-                         src="${avatarUrl}"
-                         onerror="this.src='${HeartLink.namedAvatar(p.fullName)}'"
-                         alt="${HeartLink.escapeHtml(p.fullName)}" />
-                    <div class="flex-grow-1">
-                        <div class="fw-bold">${HeartLink.escapeHtml(p.fullName)}</div>
-                    </div>
-                    <span class="hl-badge">❤️ ${p.totalLikes} lượt thích</span>
-                </div>`;
-            }).join('');
+        const profiles = stats.topLikedProfiles;
+        if (profiles && profiles.length > 0) {
+            document.getElementById('topProfilesTable').innerHTML = profiles.map(p => `
+                <tr class="transition-all hover-row">
+                    <td class="border-0 py-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="${HeartLink.avatarUrl(p.avatar, 'sm')}" class="hl-avatar-sm" />
+                            <div>
+                                <div class="fw-bold">${HeartLink.escapeHtml(p.fullName)}</div>
+                                <div class="hl-meta x-small">${p.age} tuổi • ${p.gender}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="border-0 py-3">
+                        <span class="badge bg-white bg-opacity-50 text-dark rounded-pill px-3 py-2 border-0 shadow-sm">${p.gender}</span>
+                    </td>
+                    <td class="border-0 py-3 text-center">
+                        <div class="fw-extra-bold text-pink-600 fs-5">${p.likeCount}</div>
+                        <div class="hl-meta x-small">Lượt thích</div>
+                    </td>
+                    <td class="border-0 py-3 text-end">
+                        <a href="/admin/users?keyword=${encodeURIComponent(p.fullName)}" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-2 border-0 hl-glass-card shadow-none">
+                            <i data-lucide="external-link" size="14"></i>
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            document.getElementById('topProfilesTable').innerHTML = '<tr><td colspan="4" class="text-center py-5 hl-meta opacity-50">Chưa có dữ liệu thống kê</td></tr>';
         }
-    } catch (err) {
-        HeartLink.showMessage('dashMsg', err.message, 'danger');
-        document.getElementById('statsRow').innerHTML = '';
-    }
+        lucide.createIcons();
+    } catch (err) { HeartLink.showToast(err.message, 'danger'); }
 });
 </script>
+<style>
+.transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.hover-scale:hover { transform: translateY(-5px) scale(1.02); }
+.hover-row:hover { background: rgba(255,255,255,0.2); }
+.x-small { font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.group:hover i { transform: translateX(5px) !important; }
+</style>
 }
