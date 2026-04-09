@@ -9,63 +9,44 @@
             <div class="text-center mb-4">
                 <span style="font-size:3rem;">💖</span>
                 <h1 class="hl-page-title mt-2 mb-1">Tham gia HeartLink</h1>
-                <p class="hl-subtitle">Tìm thấy một nửa của bạn ngay hôm nay</p>
+                <p class="hl-subtitle">Tạo tài khoản nhanh chỉ với vài bước</p>
             </div>
 
             <div id="regMessage" class="alert" style="display:none;"></div>
 
             <form id="regForm" novalidate>
-                <!-- Section 1: Tài khoản -->
-                <div class="hl-section-title mb-3" style="font-size:1.1rem;">🔐 Thông tin tài khoản</div>
                 <div class="mb-3">
                     <label class="form-label" for="reg-email">Email <span class="text-danger">*</span></label>
                     <input id="reg-email" type="email" class="form-control" placeholder="name@example.com" required />
                 </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label" for="reg-pw">Mật khẩu <span class="text-danger">*</span></label>
-                        <input id="reg-pw" type="password" class="form-control" placeholder="••••••••" required />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label" for="reg-cpw">Xác nhận <span class="text-danger">*</span></label>
-                        <input id="reg-cpw" type="password" class="form-control" placeholder="••••••••" required />
-                    </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="reg-pw">Mật khẩu <span class="text-danger">*</span></label>
+                    <input id="reg-pw" type="password" class="form-control" placeholder="••••••••" required />
                 </div>
 
-                <!-- Section 2: Cá nhân -->
-                <div class="hl-section-title mb-3 mt-2" style="font-size:1.1rem;">👤 Thông tin cá nhân</div>
                 <div class="mb-3">
-                    <label class="form-label" for="reg-name">Họ và tên <span class="text-danger">*</span></label>
-                    <input id="reg-name" type="text" class="form-control" placeholder="Nguyễn Văn A" required />
+                    <label class="form-label" for="reg-cpw">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                    <input id="reg-cpw" type="password" class="form-control" placeholder="••••••••" required />
                 </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label" for="reg-birth">Ngày sinh <span class="text-danger">*</span></label>
-                        <input id="reg-birth" type="date" class="form-control" required />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label" for="reg-gender">Giới tính <span class="text-danger">*</span></label>
-                        <select id="reg-gender" class="form-select" required>
-                            <option value="">Chọn...</option>
-                            <option value="Nam">Nam</option>
-                            <option value="Nữ">Nữ</option>
-                            <option value="Khác">Khác</option>
-                        </select>
-                    </div>
-                </div>
+
                 <div class="mb-4">
                     <label class="form-label" for="reg-phone">Số điện thoại</label>
                     <input id="reg-phone" type="tel" class="form-control" placeholder="09xxxxxxxx" />
                 </div>
 
                 <button class="btn btn-primary w-100 py-3 mb-3" type="submit" id="regBtn">
-                    ✨ Tạo tài khoản
+                    ✨ Đăng ký ngay
                 </button>
             </form>
 
             <div class="text-center mt-3">
                 <span class="text-muted">Đã có tài khoản?</span>
                 <a href="/login" class="fw-bold text-gradient ms-1">Đăng nhập ngay</a>
+            </div>
+            
+            <div class="text-center mt-4 hl-meta" style="font-size:0.85rem;">
+                ℹ️ Bạn sẽ cập nhật thông tin cá nhân (Họ tên, ngày sinh...) sau khi đăng nhập thành công.
             </div>
         </div>
     </div>
@@ -74,7 +55,6 @@
 @section Scripts {
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // If logged in, go to discovery
     if (HeartLink.getAuth()?.token) {
         window.location.href = '/discovery';
         return;
@@ -88,9 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const email     = document.getElementById('reg-email').value.trim();
         const password  = document.getElementById('reg-pw').value;
         const confirm   = document.getElementById('reg-cpw').value;
-        const fullName  = document.getElementById('reg-name').value.trim();
-        const birthDate = document.getElementById('reg-birth').value;
-        const gender    = document.getElementById('reg-gender').value;
         const phone     = document.getElementById('reg-phone').value.trim();
 
         if (password !== confirm) {
@@ -98,8 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!email || !password || !fullName || !birthDate || !gender) {
-            HeartLink.showMessage('regMessage', 'Vui lòng điền đầy đủ các thông tin bắt buộc (*).', 'danger');
+        if (!email || !password) {
+            HeartLink.showMessage('regMessage', 'Vui lòng điền Email và Mật khẩu.', 'danger');
             return;
         }
 
@@ -114,9 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     email,
                     password,
                     confirmPassword: confirm,
-                    fullName,
-                    birthDate,
-                    gender,
                     phoneNumber: phone || null
                 }
             });
@@ -124,11 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
             HeartLink.showToast('Đăng ký thành công! Đang chuyển hướng...', 'success');
             setTimeout(() => {
                 window.location.href = '/login';
-            }, 1500);
+            }, 1000);
         } catch (err) {
             HeartLink.showMessage('regMessage', err.message, 'danger');
             btn.disabled = false;
-            btn.innerHTML = '✨ Tạo tài khoản';
+            btn.innerHTML = '✨ Đăng ký ngay';
         }
     });
 });

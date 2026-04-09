@@ -29,9 +29,6 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        if (request.BirthDate.Date > DateTime.Today.AddYears(-18))
-            return BadRequest(new { message = "Người dùng phải từ 18 tuổi trở lên." });
-
         var email = request.Email.Trim().ToLower();
         var phone = string.IsNullOrWhiteSpace(request.PhoneNumber) ? null : request.PhoneNumber.Trim();
 
@@ -56,9 +53,9 @@ public class AuthController : ControllerBase
         var profile = new Profile
         {
             Account = account,
-            FullName = request.FullName.Trim(),
-            BirthDate = request.BirthDate.Date,
-            Gender = request.Gender,
+            FullName = "Người dùng mới",
+            BirthDate = DateTime.Now.AddYears(-20), // Default age 20
+            Gender = "Khác",
             TargetGender = "Tất cả",
             MinAge = 18,
             MaxAge = 99,

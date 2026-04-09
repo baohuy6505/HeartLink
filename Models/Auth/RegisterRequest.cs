@@ -15,13 +15,4 @@ public class RegisterRequest
 
     [MaxLength(15)]
     public string? PhoneNumber { get; set; }
-
-    [Required, MaxLength(100)]
-    public string FullName { get; set; } = null!;
-
-    [Required]
-    public DateTime BirthDate { get; set; }
-
-    [Required, RegularExpression("Nam|Nữ|Khác")]
-    public string Gender { get; set; } = null!;
 }
