@@ -63,6 +63,20 @@ public class MatchController : ControllerBase
             return NotFound(new { message = "Không tìm thấy match hợp lệ." });
 
         match.Status = 2;
+        
+        // Cập nhật lại Like của cả 2 bên thành Dislike để họ có thể xuất hiện lại ngẫu nhiên trong Discovery Stage 2
+        var user1Id = match.User1ID;
+        var user2Id = match.User2ID;
+        
+        var likes = await _context.Likes
+            .Where(x => (x.SenderID == user1Id && x.ReceiverID == user2Id) || 
+                        (x.SenderID == user2Id && x.ReceiverID == user1Id))
+            .ToListAsync();
+            
+        foreach(var l in likes) {
+            l.Type = "Dislike";
+        }
+
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Đã hủy kết đôi." });

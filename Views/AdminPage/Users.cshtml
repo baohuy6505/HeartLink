@@ -98,6 +98,10 @@ async function loadUsers(page = 1) {
     const bdFrom  = document.getElementById('f-bdFrom').value;
 
     let url = `/api/admin/dashboard/users?page=${page}&pageSize=15`;
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = urlParams.get('status');
+
+    if (statusParam) url += `&status=${statusParam}`;
     if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
     if (gender)  url += `&gender=${encodeURIComponent(gender)}`;
     if (city)    url += `&city=${encodeURIComponent(city)}`;
@@ -137,6 +141,7 @@ async function loadUsers(page = 1) {
                 <td class="py-3 border-0 small hl-meta">${HeartLink.formatDate(u.birthDate)}</td>
                 <td class="py-3 border-0 small hl-meta">${u.location || '—'}</td>
                 <td class="py-3 border-0 fw-medium text-gradient">${statusBadge}</td>
+                <td class="py-3 border-0 small text-danger fw-bold">${u.status ? '' : (u.banReason || 'Vi phạm điều khoản')}</td>
                 <td class="py-3 border-0 text-end pe-4">${actionBtn}</td>
             </tr>`;
         }).join('');
@@ -154,6 +159,7 @@ async function loadUsers(page = 1) {
                         <th class="border-0 py-3">Ngày sinh</th>
                         <th class="border-0 py-3">Vị trí</th>
                         <th class="border-0 py-3">Trạng thái</th>
+                        <th class="border-0 py-3">Lý do khóa</th>
                         <th class="border-0 py-3 text-end pe-4">Thao tác</th>
                     </tr>
                 </thead>

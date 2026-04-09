@@ -34,5 +34,8 @@ public class UpdateProfileRequest
     [Range(1, 500)]
     public double Radius { get; set; } = 50;
 
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     public List<string> Interests { get; set; } = new();
 }
