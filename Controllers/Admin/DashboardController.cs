@@ -25,8 +25,9 @@ public class DashboardController : ControllerBase
         [FromQuery] string? city,
         [FromQuery] DateTime? birthDateFrom,
         [FromQuery] DateTime? birthDateTo,
+        [FromQuery] string? status,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 5)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 50);
@@ -34,6 +35,15 @@ public class DashboardController : ControllerBase
         var query = _context.Accounts
             .Include(x => x.Profile)
             .AsQueryable();
+
+        if (status == "Banned")
+        {
+            query = query.Where(x => x.Status == false);
+        }
+        else if (status == "Active")
+        {
+            query = query.Where(x => x.Status == true && x.UserRole != "Admin");
+        }
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {

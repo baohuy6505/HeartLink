@@ -25,19 +25,20 @@ public class DiscoveryController : ControllerBase
     public async Task<IActionResult> GetRandom([FromQuery] int take = 6)
     {
         take = Math.Clamp(take, 1, 10);
-        var randomProfiles = await _context.Profiles
+        var profiles = await _context.Profiles
             .OrderBy(r => Guid.NewGuid())
             .Take(take)
-            .Select(x => new
-            {
-                x.ProfileID,
-                x.FullName,
-                Age = DateTime.Today.Year - x.BirthDate.Year,
-                x.Gender,
-                x.Location,
-                x.Avatar
-            })
             .ToListAsync();
+
+        var randomProfiles = profiles.Select(x => new
+        {
+            x.ProfileID,
+            x.FullName,
+            Age = CalculateAge(x.BirthDate),
+            x.Gender,
+            x.Location,
+            x.Avatar
+        }).ToList();
 
         return Ok(randomProfiles);
     }
@@ -83,9 +84,25 @@ public class DiscoveryController : ControllerBase
 
         query = query.Where(x => x.BirthDate >= minBirthDate && x.BirthDate <= maxBirthDate);
 
-        // Stage 1: Try to find users who haven't been interacted with at all
-        var candidates = await query
+        // Filter out banned/inactive accounts
+        query = query.Where(x => x.Account.Status == true);
+
+        // Fetch all potential candidates to filter by distance in memory 
+        // (A more optimized approach would be a bounding box filter first)
+        var allCandidates = await query
             .Where(x => !allExcludedIds.Contains(x.AccountID))
+            .ToListAsync();
+
+        if (myProfile.Latitude.HasValue && myProfile.Longitude.HasValue)
+        {
+            allCandidates = allCandidates
+                .Where(x => !x.Latitude.HasValue || !x.Longitude.HasValue || 
+                            CalculateDistance(myProfile.Latitude.Value, myProfile.Longitude.Value, 
+                                              x.Latitude.Value, x.Longitude.Value) <= myProfile.Radius)
+                .ToList();
+        }
+
+        var candidates = allCandidates
             .OrderByDescending(x => x.CreatedDate)
             .Take(take)
             .Select(x => new
@@ -100,14 +117,28 @@ public class DiscoveryController : ControllerBase
                 x.Avatar,
                 Interests = x.Interests.Select(i => i.InterestName).ToList()
             })
-            .ToListAsync();
+            .ToList();
 
         // Stage 2: Fallback to users who were 'Disliked' (Passed) if no new users found
         if (!candidates.Any() && dislikedIds.Any())
         {
-            candidates = await query
+            var recycledQuery = query
                 .Where(x => !likedAndMatchedIds.Contains(x.AccountID))
-                .OrderBy(x => Guid.NewGuid()) // Randomize recycled profiles
+                .Where(x => dislikedIds.Contains(x.AccountID));
+
+            var recycledCandidatesFull = await recycledQuery.ToListAsync();
+
+            if (myProfile.Latitude.HasValue && myProfile.Longitude.HasValue)
+            {
+                recycledCandidatesFull = recycledCandidatesFull
+                    .Where(x => !x.Latitude.HasValue || !x.Longitude.HasValue || 
+                                CalculateDistance(myProfile.Latitude.Value, myProfile.Longitude.Value, 
+                                                  x.Latitude.Value, x.Longitude.Value) <= myProfile.Radius)
+                    .ToList();
+            }
+
+            candidates = recycledCandidatesFull
+                .OrderBy(x => Guid.NewGuid()) 
                 .Take(take)
                 .Select(x => new
                 {
@@ -121,7 +152,7 @@ public class DiscoveryController : ControllerBase
                     x.Avatar,
                     Interests = x.Interests.Select(i => i.InterestName).ToList()
                 })
-                .ToListAsync();
+                .ToList();
         }
 
         return Ok(candidates);
@@ -234,5 +265,16 @@ public class DiscoveryController : ControllerBase
         var age = today.Year - birthDate.Year;
         if (birthDate.Date > today.AddYears(-age)) age--;
         return age;
+    }
+
+    private static double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+    {
+        var d1 = lat1 * (Math.PI / 180.0);
+        var num1 = lon1 * (Math.PI / 180.0);
+        var d2 = lat2 * (Math.PI / 180.0);
+        var num2 = (lon2 - lon1) * (Math.PI / 180.0);
+        var d3 = Math.Pow(Math.Sin((d2 - d1) / 2.0), 2.0) +
+                 Math.Cos(d1) * Math.Cos(d2) * Math.Pow(Math.Sin(num2 / 2.0), 2.0);
+        return 6371.0 * (2.0 * Math.Atan2(Math.Sqrt(d3), Math.Sqrt(1.0 - d3)));
     }
 }

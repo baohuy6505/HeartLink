@@ -1,373 +1,255 @@
 @{
-    ViewData["Title"] = "Quản lý người dùng";
+    ViewData["Title"] = "Bảng điều khiển Admin";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="hl-section">
-    <div class="hl-blob" style="top:10%; right:-5%; width:600px; height:600px; background:radial-gradient(circle, rgba(114, 9, 183, 0.05) 0%, transparent 70%);"></div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <div class="hl-blob" style="top:5%; left:10%; width:500px; height:500px; background:radial-gradient(circle, rgba(255, 77, 109, 0.05) 0%, transparent 70%);"></div>
 
     <div class="d-flex align-items-center justify-content-between mb-5">
         <div>
-            <h1 class="display-5 fw-extra-bold mb-0 text-gradient">Thành viên hệ thống</h1>
-            <p class="hl-meta fs-5">Kiểm soát và hỗ trợ tài khoản người dùng</p>
+            <h1 class="display-5 fw-extra-bold mb-0 text-gradient d-flex align-items-center gap-3">
+                <i data-lucide="stars" class="text-orange-500 hl-star-shimmer"></i>
+                Quản trị hệ thống
+            </h1>
+            <p class="hl-meta fs-5">Phân tích chuyên sâu & Tổng hợp số liệu HeartLink</p>
         </div>
-        <a href="/admin" class="btn btn-outline-dark hl-glass-card d-flex align-items-center gap-2 px-4 shadow-none">
-            <i data-lucide="arrow-left" size="18"></i> Dashboard
-        </a>
+        <div class="hl-glass-card p-3 d-flex align-items-center gap-3">
+            <div class="bg-success rounded-circle" style="width:12px; height:12px; box-shadow:0 0 10px #198754;"></div>
+            <span class="fw-bold small">Trực tuyến</span>
+        </div>
     </div>
 
-    <!-- Advanced Filters -->
-    <div class="hl-glass-card p-4 mb-5">
-        <div class="row g-3 align-items-end">
-            <div class="col-lg-3">
-                <label class="form-label x-small fw-bold hl-meta">Tìm kiếm tổng hợp</label>
-                <div class="position-relative">
-                    <i data-lucide="search" class="position-absolute ms-3 top-50 translate-middle-y text-muted" size="18"></i>
-                    <input id="kw" type="text" class="form-control rounded-pill ps-5 border-0 bg-white bg-opacity-50"
-                           placeholder="Tên, Email hoặc SĐT..."
-                           onkeydown="if(event.key==='Enter') loadUsers(1)" />
+    <!-- Stats Grid -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="hl-glass-card p-4 text-center hover-scale transition-all">
+                <div class="text-blue-500 mb-3"><i data-lucide="users" size="32"></i></div>
+                <div id="stat-totalUsers" class="display-6 fw-extra-bold">--</div>
+                <div class="hl-meta x-small mt-2">Tổng người dùng</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="hl-glass-card p-4 text-center hover-scale transition-all">
+                <div class="text-pink-600 mb-3"><i data-lucide="heart" size="32"></i></div>
+                <div id="stat-totalMatches" class="display-6 fw-extra-bold">--</div>
+                <div class="hl-meta x-small mt-2">Tổng ghép đôi</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="hl-glass-card p-4 text-center hover-scale transition-all">
+                <div class="text-orange-500 mb-3"><i data-lucide="user-plus" size="32"></i></div>
+                <div id="stat-newUsers" class="display-6 fw-extra-bold">--</div>
+                <div class="hl-meta x-small mt-2">Mới (30 ngày)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="hl-glass-card p-4 text-center hover-scale transition-all border-danger border-opacity-25">
+                <div class="text-danger mb-3"><i data-lucide="shield-alert" size="32"></i></div>
+                <div id="stat-bannedUsers" class="display-6 fw-extra-bold">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart & Summary Area -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="hl-glass-card p-5">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <h3 class="fw-extra-bold mb-0 d-flex align-items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="text-blue-500"></i> Tăng trưởng người dùng
+                    </h3>
+                    <div class="hl-meta small">30 ngày gần nhất</div>
+                </div>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="growthChart"></canvas>
                 </div>
             </div>
-
-            <div class="col-lg-2">
-                <label class="form-label x-small fw-bold hl-meta">Giới tính</label>
-                <select id="f-gender" class="form-select rounded-pill px-4 border-0 bg-white bg-opacity-50">
-                    <option value="">Tất cả</option>
-                    <option value="Nam">Nam</option>
-                    <option value="Nữ">Nữ</option>
-                    <option value="Khác">Khác</option>
-                </select>
-            </div>
-
-            <div class="col-lg-2">
-                <label class="form-label x-small fw-bold hl-meta">Thành phố</label>
-                <input id="f-city" type="text" class="form-control rounded-pill px-4 border-0 bg-white bg-opacity-50" placeholder="HCM, HN..." />
-            </div>
-
-            <div class="col-lg-2">
-                <label class="form-label x-small fw-bold hl-meta">Sinh từ</label>
-                <input id="f-bdFrom" type="date" class="form-control rounded-pill px-4 border-0 bg-white bg-opacity-50" />
-            </div>
-
-            <div class="col-lg-2">
-                <label class="form-label x-small fw-bold hl-meta">Trạng thái</label>
-                <select id="f-status" class="form-select rounded-pill px-4 border-0 bg-white bg-opacity-50">
-                    <option value="">Tất cả</option>
-                    <option value="Active">Active</option>
-                    <option value="Banned">Banned</option>
-                </select>
-            </div>
-
-            <div class="col-lg-1">
-                <button class="btn btn-primary w-100 rounded-pill py-2 shadow-sm" onclick="loadUsers(1)">
-                    Lọc
-                </button>
+        </div>
+        <div class="col-lg-4">
+            <div class="hl-glass-card p-5 bg-primary bg-opacity-10 border-primary border-opacity-20 d-flex flex-column justify-content-center text-center h-100">
+                <div class="hl-star-container mb-3">
+                    <i data-lucide="sparkles" class="text-orange-500" size="48"></i>
+                </div>
+                <h4 class="fw-extra-bold mb-2">Tổng hợp hoạt động</h4>
+                <p class="hl-meta small px-3">Hệ thống đang vận hành ổn định với hiệu suất cao.</p>
+                <div class="d-flex flex-column gap-3 mt-4">
+                    <div class="d-flex justify-content-between align-items-center bg-white bg-opacity-40 p-3 rounded-pill text-start">
+                        <span class="hl-meta x-small fw-bold">Tin nhắn đã gửi</span>
+                        <span id="stat-totalMessages" class="fw-bold fs-5 text-gradient">--</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center bg-white bg-opacity-40 p-3 rounded-pill text-start">
+                        <span class="hl-meta x-small fw-bold">Ghép đôi thành công</span>
+                        <span id="stat-activeMatches" class="fw-bold fs-5 text-gradient">--</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- User Table -->
-    <div id="usersMsg" class="alert hl-glass-card border-danger text-danger mb-4" style="display:none;"></div>
-
-    <div class="hl-glass-card p-0 overflow-hidden">
-        <div id="usersContainer" class="p-0">
-            <div class="p-5 text-center hl-meta">
-                <div class="hl-spinner mx-auto mb-3"></div>
-                Đang truy xuất dữ liệu...
+    <div class="row g-5">
+        <!-- Top Profiles (Removed as requested) -->
+        <div class="col-lg-8" style="display:none;">
+            <div class="hl-glass-card p-5 h-100">
+                <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-3">
+                    <i data-lucide="crown" class="text-orange-500"></i> Ngôi sao của tháng
+                </h3>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle border-transparent">
+                        <thead>
+                            <tr class="hl-meta x-small fw-bold text-uppercase" style="letter-spacing:0.1em;">
+                                <th class="pb-3 border-0">Thành viên</th>
+                                <th class="pb-3 border-0">Giới tính</th>
+                                <th class="pb-3 border-0 text-center">Sức hút</th>
+                                <th class="pb-3 border-0 text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topProfilesTable">
+                            <tr><td colspan="4" class="text-center py-5 hl-meta">Đang tải biểu đồ...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- ── Ban Modal ── -->
-<div id="banModal" class="hl-modal-overlay" style="display:none; transition:0.3s;">
-    <div class="hl-glass-card p-5" style="max-width:500px; width:90%; position:relative;">
-        <h3 class="fw-extra-bold mb-3 d-flex align-items-center gap-2">
-            <i data-lucide="shield-x" class="text-danger"></i> Khóa tài khoản
-        </h3>
-        <p class="hl-meta small mb-4">
-            Hành động này sẽ ngăn người dùng truy cập vào hệ thống. Vui lòng cung cấp lý do vi phạm cụ thể.
-        </p>
-
-        <input type="hidden" id="banTargetId" />
-
-        <div class="mb-4">
-            <label class="form-label x-small fw-bold hl-meta">Lý do kỷ luật</label>
-            <textarea id="banReason"
-                      class="form-control rounded-4 p-3 border-0 bg-light shadow-none"
-                      rows="3"
-                      placeholder="Ví dụ: Spam tin nhắn, ngôn từ không chuẩn mực..."></textarea>
-        </div>
-
-        <div id="banModalMsg" class="alert hl-glass-card border-danger text-danger mb-4 small" style="display:none;"></div>
-
-        <div class="d-flex gap-2">
-            <button class="btn btn-danger flex-grow-1 py-3 shadow-lg" id="confirmBanBtn" onclick="confirmBan()">Xác nhận khóa</button>
-            <button class="btn btn-outline-dark hl-glass-card px-4 border-0 shadow-none" onclick="closeBanModal()">Hủy</button>
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="hl-glass-card p-5 h-100 bg-white bg-opacity-30">
+                <h3 class="fw-extra-bold mb-4 d-flex align-items-center gap-3">
+                    <i data-lucide="command" class="text-blue-500"></i> Lối tắt
+                </h3>
+                <div class="d-grid gap-3">
+                    <a href="/admin/users" class="btn btn-primary py-3 d-flex align-items-center justify-content-between px-4 group">
+                        <span>Quản lý người dùng</span>
+                        <i data-lucide="chevron-right" class="transition-all" style="transform:translateX(0);"></i>
+                    </a>
+                    <a href="/admin/users?status=Banned" class="btn btn-outline-danger hl-glass-card py-3 d-flex align-items-center justify-content-between px-4 shadow-none">
+                        <span>Danh sách vi phạm</span>
+                        <i data-lucide="shield-x"></i>
+                    </a>
+                    <!-- Removed PDF report -->
+                    <div class="mt-auto pt-5">
+                        <div class="hl-glass-card p-4 bg-white bg-opacity-40">
+                            <div class="fw-bold small mb-1">Server Traffic</div>
+                            <div class="progress" style="height:6px; background: rgba(0,0,0,0.05);">
+                                <div class="progress-bar bg-primary" style="width: 35%"></div>
+                            </div>
+                            <div class="hl-meta x-small mt-2">35% capacity in use</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        let currentPage = 1;
-
-        function getFilterValues() {
-            return {
-                keyword: document.getElementById('kw').value.trim(),
-                gender: document.getElementById('f-gender').value,
-                city: document.getElementById('f-city').value.trim(),
-                bdFrom: document.getElementById('f-bdFrom').value,
-                status: document.getElementById('f-status').value
-            };
-        }
-
-        function setFilterValuesFromQuery() {
-            const params = new URLSearchParams(window.location.search);
-
-            const keyword = params.get('keyword') || '';
-            const gender = params.get('gender') || '';
-            const city = params.get('city') || '';
-            const bdFrom = params.get('birthDateFrom') || '';
-            const status = params.get('status') || '';
-            const page = parseInt(params.get('page')) || 1;
-        document.getElementById('kw').value = keyword;
-            document.getElementById('f-gender').value = gender;
-            document.getElementById('f-city').value = city;
-            document.getElementById('f-bdFrom').value = bdFrom;
-            document.getElementById('f-status').value = status;
-
-            currentPage = page;
-        }
-
-        function updateBrowserUrl(page = 1) {
-            const filters = getFilterValues();
-            const params = new URLSearchParams();
-
-            if (page > 1) params.set('page', page);
-            if (filters.keyword) params.set('keyword', filters.keyword);
-            if (filters.gender) params.set('gender', filters.gender);
-            if (filters.city) params.set('city', filters.city);
-            if (filters.bdFrom) params.set('birthDateFrom', filters.bdFrom);
-            if (filters.status) params.set('status', filters.status);
-
-            const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-            window.history.replaceState({}, '', newUrl);
-        }
-
-        function escapeHtml(text) {
-            if (text === null || text === undefined) return '';
-            return String(text)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        async function loadUsers(page = 1) {
-            currentPage = page;
-
-            const { keyword, gender, city, bdFrom, status } = getFilterValues();
-
-            updateBrowserUrl(page);
-
-            let url = `/api/admin/dashboard/users?page=${page}&pageSize=15`;
-            if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-            if (gender)  url += `&gender=${encodeURIComponent(gender)}`;
-            if (city)    url += `&city=${encodeURIComponent(city)}`;
-            if (bdFrom)  url += `&birthDateFrom=${encodeURIComponent(bdFrom)}`;
-            if (status)  url += `&status=${encodeURIComponent(status)}`;
-
-            document.getElementById('usersContainer').innerHTML = `
-                <div class="p-5 text-center hl-meta">
-                    <div class="hl-spinner mx-auto mb-3"></div>
-                    Tải dữ liệu...
-                </div>`;
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!HeartLink.requireAdmin()) return;
 
             try {
-                const data = await HeartLink.apiFetch(url);
+                const stats = await HeartLink.apiFetch('/api/admin/dashboard/stats');
+                document.getElementById('stat-totalUsers').textContent = stats.totalUsers || 0;
+                document.getElementById('stat-newUsers').textContent = stats.newUsersLast30Days || 0;
+                document.getElementById('stat-totalMatches').textContent = stats.totalMatches || 0;
+                document.getElementById('stat-bannedUsers').textContent = stats.bannedUsers || 0;
+                document.getElementById('stat-totalMessages').textContent = stats.totalMessages || 0;
+                document.getElementById('stat-activeMatches').textContent = stats.activeMatches || 0;
 
-                if (!data || !Array.isArray(data.items) || data.items.length === 0) {
-                    document.getElementById('usersContainer').innerHTML = `
-                        <div class="p-5 text-center opacity-50">
-                            <i data-lucide="user-x" size="48" class="mb-3"></i>
-                            <div>Không tìm thấy thành viên nào</div>
-                        </div>`;
-                    lucide.createIcons();
-                    return;
-                }
-
-                const tableRows = data.items.map(u => {
-                    const avatar = HeartLink.avatarUrl(u.avatar, 'sm');
-
-                    const safeEmail = escapeHtml(u.email || '—');
-                    const safeGender = escapeHtml(u.gender || '—');
-                    const safeLocation = escapeHtml(u.location || '—');
-                    const safeFullName = HeartLink.escapeHtml(u.fullName || '—');
-
-                    let statusBadge = '';
-                    if (u.userRole === 'Admin') {
-        statusBadge = '<span class="status-dot admin"></span>Admin';
-                    } else if (u.status) {
-                        statusBadge = '<span class="status-dot online"></span>Active';
-                    } else {
-                        statusBadge = '<span class="status-dot offline"></span>Banned';
-                    }
-
-                    let actionBtn = '';
-                    if (u.userRole !== 'Admin') {
-                        if (u.status) {
-                            actionBtn = `<button class="btn btn-sm btn-outline-danger border-0 hl-glass-card shadow-none px-3" onclick="openBanModal(${u.accountID})">Khóa</button>`;
-                        } else {
-                            actionBtn = `<button class="btn btn-sm btn-outline-success border-0 hl-glass-card shadow-none px-3" onclick="unbanUser(${u.accountID})">Mở</button>`;
+                // Render Growth Chart
+                const ctx = document.getElementById('growthChart').getContext('2d');
+                const chartData = stats.newUsersByDate || [];
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+        labels: chartData.map(d => new Date(d.registerDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })),
+                        datasets: [{
+                            label: 'Người dùng mới',
+                            data: chartData.map(d => d.totalNewUsers),
+                            backgroundColor: 'rgba(255, 77, 109, 0.7)',
+                            borderColor: '#ff4d6d',
+                            borderWidth: 0,
+                            borderRadius: 8,
+                            barThickness: 12
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.03)' }, ticks: { font: { family: 'Outfit', size: 10 } } },
+                            x: { grid: { display: false }, ticks: { font: { family: 'Outfit', size: 10 } } }
                         }
                     }
+                });
 
-                    return `
-                        <tr class="hover-row transition-all">
-                            <td class="py-3 border-0 ps-4">
+                const profiles = stats.topLikedProfiles;
+                if (profiles && profiles.length > 0) {
+                    document.getElementById('topProfilesTable').innerHTML = profiles.map(p => `
+                        <tr class="transition-all hover-row">
+                            <td class="border-0 py-3">
                                 <div class="d-flex align-items-center gap-3">
-                                    <img src="${avatar}" class="hl-avatar-sm" />
+                                    <img src="${HeartLink.avatarUrl(p.avatar, 'sm')}" class="hl-avatar-sm" />
                                     <div>
-                                        <div class="fw-bold">${safeFullName}</div>
-                                        <div class="hl-meta x-small">${safeEmail}</div>
+                                        <div class="fw-bold">${HeartLink.escapeHtml(p.fullName)}</div>
+                                        <div class="hl-meta x-small">${p.age} tuổi • ${p.gender}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-3 border-0 small hl-meta">${safeGender}</td>
-                            <td class="py-3 border-0 small hl-meta">${HeartLink.formatDate(u.birthDate)}</td>
-                            <td class="py-3 border-0 small hl-meta">${safeLocation}</td>
-                            <td class="py-3 border-0 fw-medium text-gradient">${statusBadge}</td>
-                            <td class="py-3 border-0 text-end pe-4">${actionBtn}</td>
-                        </tr>`;
-                }).join('');
-
-                const totalPages = Math.max(1, Math.ceil((data.totalItems || 0) / (data.pageSize || 15)));
-
-                const pagHtml = Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .map(p => `
-                        <button class="hl-page-btn ${p === currentPage ? 'active' : ''}" onclick="loadUsers(${p})">
-                            ${p}
-                        </button>`)
-                    .join('');
-
-                document.getElementById('usersContainer').innerHTML = `
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-white bg-opacity-10">
-                            <tr class="x-small hl-meta fw-bold text-uppercase" style="letter-spacing:0.1em;">
-                                <th class="ps-4 border-0 py-3">Thành viên</th>
-                                <th class="border-0 py-3">Phái</th>
-                                <th class="border-0 py-3">Ngày sinh</th>
-                                <th class="border-0 py-3">Vị trí</th>
-                                <th class="border-0 py-3">Trạng thái</th>
-                                <th class="border-0 py-3 text-end pe-4">Thao tác</th>
-                            </tr>
-                        </thead>
-        <tbody>${tableRows}</tbody>
-                    </table>
-                    <div class="p-4 border-top border-white border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-3">
-                        <span class="hl-meta small">Hiển thị ${data.items.length} trên ${data.totalItems} kết quả</span>
-                        <div class="hl-pagination">${pagHtml}</div>
-                    </div>`;
-
+                            <td class="border-0 py-3">
+                                <span class="badge bg-white bg-opacity-50 text-dark rounded-pill px-3 py-2 border-0 shadow-sm">${p.gender}</span>
+                            </td>
+                            <td class="border-0 py-3 text-center">
+                                <div class="fw-extra-bold text-pink-600 fs-5">${p.likeCount}</div>
+                                <div class="hl-meta x-small">Lượt thích</div>
+                            </td>
+                            <td class="border-0 py-3 text-end">
+                                <a href="/admin/users?keyword=${encodeURIComponent(p.fullName)}" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-2 border-0 hl-glass-card shadow-none">
+                                    <i data-lucide="external-link" size="14"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('topProfilesTable').innerHTML = '<tr><td colspan="4" class="text-center py-5 hl-meta opacity-50">Chưa có dữ liệu thống kê</td></tr>';
+                }
                 lucide.createIcons();
-            } catch (err) {
-                HeartLink.showToast(err.message || 'Không thể tải danh sách người dùng', 'danger');
-            }
-        }
-
-        function openBanModal(id) {
-            document.getElementById('banTargetId').value = id;
-            document.getElementById('banReason').value = '';
-            document.getElementById('banModal').style.display = 'flex';
-        }
-
-        function closeBanModal() {
-            document.getElementById('banModal').style.display = 'none';
-        }
-
-        async function confirmBan() {
-            const id = document.getElementById('banTargetId').value;
-            const reason = document.getElementById('banReason').value.trim();
-
-            if (!reason) {
-                HeartLink.showToast('Vui lòng nhập lý do khóa', 'warning');
-                return;
-            }
-
-            try {
-                await HeartLink.apiFetch(`/api/admin/dashboard/users/${id}/ban`, {
-                    method: 'POST',
-                    body: { reason }
-                });
-
-                closeBanModal();
-                await loadUsers(currentPage);
-                HeartLink.showToast('Đã khóa tài khoản', 'success');
-            } catch (err) {
-                HeartLink.showToast(err.message || 'Khóa tài khoản thất bại', 'danger');
-            }
-        }
-
-        async function unbanUser(id) {
-            if (!confirm('Bạn muốn mở khóa tài khoản này?')) return;
-
-            try {
-                await HeartLink.apiFetch(`/api/admin/dashboard/users/${id}/unban`, {
-                    method: 'POST'
-                });
-
-                await loadUsers(currentPage);
-                HeartLink.showToast('Đã mở khóa tài khoản', 'success');
-            } catch (err) {
-                HeartLink.showToast(err.message || 'Mở khóa tài khoản thất bại', 'danger');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!HeartLink.requireAdmin()) return;
-
-            setFilterValuesFromQuery();
-            loadUsers(currentPage);
-
-            document.getElementById('f-gender').addEventListener('change', () => loadUsers(1));
-            document.getElementById('f-status').addEventListener('change', () => loadUsers(1));
+            } catch (err) { HeartLink.showToast(err.message, 'danger'); }
         });
     </script>
-
     <style>
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
+        .transition-all {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-            .status-dot.online {
-                background: #10b981;
-                box-shadow: 0 0 8px #10b98188;
-            }
-
-            .status-dot.offline {
-                background: #ef4444;
-            }
-
-            .status-dot.admin {
-                background: #8b5cf6;
-            }
+        .hover-scale:hover {
+            transform: translateY(-5px) scale(1.02);
+        }
 
         .hover-row:hover {
-            background: rgba(255,255,255,0.15);
-        }
-
-        .transition-all {
-            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.2);
         }
 
         .x-small {
             font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .group:hover i {
+            transform: translateX(5px) !important;
+        }
+
+       
+        .hl-star-shimmer {
+            animation: starShimmer 3s infinite ease-in-out;
+        }
+
+        .hl-star-container {
+            animation: float 6s infinite ease-in-out;
         }
     </style>
 }
