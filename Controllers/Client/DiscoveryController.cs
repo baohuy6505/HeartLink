@@ -25,19 +25,20 @@ public class DiscoveryController : ControllerBase
     public async Task<IActionResult> GetRandom([FromQuery] int take = 6)
     {
         take = Math.Clamp(take, 1, 10);
-        var randomProfiles = await _context.Profiles
+        var profiles = await _context.Profiles
             .OrderBy(r => Guid.NewGuid())
             .Take(take)
-            .Select(x => new
-            {
-                x.ProfileID,
-                x.FullName,
-                Age = DateTime.Today.Year - x.BirthDate.Year,
-                x.Gender,
-                x.Location,
-                x.Avatar
-            })
             .ToListAsync();
+
+        var randomProfiles = profiles.Select(x => new
+        {
+            x.ProfileID,
+            x.FullName,
+            Age = CalculateAge(x.BirthDate),
+            x.Gender,
+            x.Location,
+            x.Avatar
+        }).ToList();
 
         return Ok(randomProfiles);
     }

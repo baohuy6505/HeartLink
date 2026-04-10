@@ -25,36 +25,36 @@ public class ProfileController : ControllerBase
     {
         var accountId = GetCurrentAccountId();
 
-        var profile = await _context.Profiles
+        var p = await _context.Profiles
             .Include(x => x.Account)
             .Include(x => x.Interests)
-            .Where(x => x.AccountID == accountId)
-            .Select(x => new
-            {
-                x.ProfileID,
-                x.AccountID,
-                Email = x.Account.Email,
-                x.Account.PhoneNumber,
-                x.Account.UserRole,
-                x.FullName,
-                x.BirthDate,
-                Age = CalculateAge(x.BirthDate),
-                x.Gender,
-                x.Bio,
-                x.Location,
-                x.Avatar,
-                x.TargetGender,
-                x.MinAge,
-                x.MaxAge,
-                x.Radius,
-                x.Latitude,
-                x.Longitude,
-                Interests = x.Interests.Select(i => i.InterestName).ToList()
-            })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(x => x.AccountID == accountId);
 
-        if (profile == null)
+        if (p == null)
             return NotFound(new { message = "Không tìm thấy hồ sơ." });
+
+        var profile = new
+        {
+            p.ProfileID,
+            p.AccountID,
+            Email = p.Account.Email,
+            p.Account.PhoneNumber,
+            p.Account.UserRole,
+            p.FullName,
+            p.BirthDate,
+            Age = CalculateAge(p.BirthDate),
+            p.Gender,
+            p.Bio,
+            p.Location,
+            p.Avatar,
+            p.TargetGender,
+            p.MinAge,
+            p.MaxAge,
+            p.Radius,
+            p.Latitude,
+            p.Longitude,
+            Interests = p.Interests.Select(i => i.InterestName).ToList()
+        };
 
         return Ok(profile);
     }
